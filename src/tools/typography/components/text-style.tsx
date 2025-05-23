@@ -35,8 +35,10 @@ import {
   ChevronDown,
   ChevronRight,
   Type,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AutoResizeInput } from "./auto-resize-input";
 
 interface Font {
   family: string;
@@ -205,22 +207,27 @@ export function TextStyle({
           </div>
 
           {/* Editable style name */}
-          <div className="relative flex items-center flex-1">
+          <div className="relative flex-1">
             {isEditingName ? (
-              <Input
+              <AutoResizeInput
                 value={styleName}
-                onChange={(e) => setStyleName(e.target.value)}
+                onValueChange={setStyleName}
                 onBlur={handleNameSubmit}
                 onKeyDown={handleNameKeyDown}
-                className="w-full px-3 py-2 text-sm font-medium bg-transparent border-0 shadow-none h-7 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="px-3 py-2 text-sm font-medium h-7"
+                style={{ lineHeight: "12px" }}
                 autoFocus
               />
             ) : (
               <button
                 onClick={() => setIsEditingName(true)}
-                className="flex items-center w-full px-3 py-2 text-sm font-medium text-left rounded-md cursor-pointer h-7 text-foreground/70 hover:text-foreground/90 focus:outline-none focus:text-foreground/90 hover:bg-muted/50"
+                className="flex items-center px-3 py-2 text-sm font-medium text-left rounded-md cursor-pointer h-7 text-foreground/50 hover:text-foreground/80 focus:outline-none focus:text-foreground/80 hover:bg-muted/50"
+                style={{ lineHeight: "12px" }}
               >
-                {styleName}
+                <span>{styleName}</span>
+                <span className="ml-1">
+                  <Pencil className="size-3 opacity-60" />
+                </span>
               </button>
             )}
           </div>
