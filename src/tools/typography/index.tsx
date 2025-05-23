@@ -19,7 +19,19 @@ interface Font {
 }
 
 export function Typography() {
-  const [styles, setStyles] = React.useState<TextStyleData[]>([]);
+  const [styles, setStyles] = React.useState<TextStyleData[]>([
+    // Add some test data to see the delete button
+    {
+      id: "test-1",
+      name: "Heading Large",
+      fontName: { family: "Inter", style: "Bold" },
+    },
+    {
+      id: "test-2",
+      name: "Body Text",
+      fontName: { family: "Inter", style: "Regular" },
+    },
+  ]);
   const [fonts, setFonts] = React.useState<Font[]>([]);
   const [fontsLoading, setFontsLoading] = React.useState(true);
 
@@ -63,6 +75,10 @@ export function Typography() {
     );
   };
 
+  const handleDeleteStyle = (id: string) => {
+    setStyles((prevStyles) => prevStyles.filter((style) => style.id !== id));
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
@@ -76,16 +92,17 @@ export function Typography() {
               fonts={fonts}
               fontsLoading={fontsLoading}
               currentFont={style.fontName}
-              onUpdate={(updatedStyle) =>
+              onChange={(updatedStyle) =>
                 handleUpdateStyle(style.id, updatedStyle)
               }
+              onDelete={() => handleDeleteStyle(style.id)}
             />
           ))}
 
           {/* Add new style */}
           <TextStyle
             mode="add"
-            onAdd={handleAddStyle}
+            onChange={handleAddStyle}
             fonts={fonts}
             fontsLoading={fontsLoading}
           />

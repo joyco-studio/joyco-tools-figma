@@ -30,15 +30,15 @@ import {
 import {
   Check,
   ChevronsUpDown,
-  Plus,
-  X,
   ChevronDown,
   ChevronRight,
   Type,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AutoResizeInput } from "./auto-resize-input";
+import { ManualSizes, type SizeEntry } from "./manual-sizes";
 
 interface Font {
   family: string;
@@ -53,13 +53,8 @@ interface TextStyleProps {
     name: string;
     fontName: { family: string; style: string };
   }) => void;
+  onDelete?: () => void;
   mode: "add" | "edit";
-}
-
-interface SizeEntry {
-  id: string;
-  name: string;
-  size: number;
 }
 
 const WEIGHT_OPTIONS = [
@@ -90,15 +85,21 @@ export function TextStyle({
   fontsLoading,
   currentFont,
   onChange,
+  onDelete,
   mode,
 }: TextStyleProps) {
+  // Debug log to see if onDelete is being passed
+  React.useEffect(() => {
+    console.log("TextStyle component props:", { mode, onDelete: !!onDelete });
+  }, [mode, onDelete]);
+
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [isEditingName, setIsEditingName] = React.useState(false);
 
   // Form state
-  const [styleName, setStyleName] = React.useState("New Text Style");
+  const [styleName, setStyleName] = React.useState("Untitled style");
   const [selectedWeights, setSelectedWeights] = React.useState<string[]>([
     "400",
   ]);
@@ -156,32 +157,6 @@ export function TextStyle({
     }
   };
 
-  const addManualSize = () => {
-    const newId = (manualSizes.length + 1).toString();
-    setManualSizes([
-      ...manualSizes,
-      { id: newId, name: `size-${newId}`, size: 12 },
-    ]);
-  };
-
-  const removeManualSize = (id: string) => {
-    if (manualSizes.length > 1) {
-      setManualSizes(manualSizes.filter((size) => size.id !== id));
-    }
-  };
-
-  const updateManualSize = (
-    id: string,
-    field: "name" | "size",
-    value: string | number
-  ) => {
-    setManualSizes(
-      manualSizes.map((size) =>
-        size.id === id ? { ...size, [field]: value } : size
-      )
-    );
-  };
-
   const handleNameSubmit = () => {
     setIsEditingName(false);
   };
@@ -195,10 +170,19 @@ export function TextStyle({
     }
   };
 
+  const handleDelete = () => {
+    if (
+      onDelete &&
+      window.confirm("Are you sure you want to delete this style?")
+    ) {
+      onDelete();
+    }
+  };
+
   return (
     <div className="w-full transition-colors border rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50">
       {/* Header with inline editable name and collapse toggle */}
-      <div className="flex items-center justify-between gap-10 px-4 py-1 pr-1 border-b border-border">
+      <div className="flex items-center justify-between gap-2 px-4 py-1 pr-1 border-b border-border">
         <div className="flex items-center flex-1 gap-2">
           {/* Prefix with Type icon and slash */}
           <div className="flex items-center gap-1 text-muted-foreground">
@@ -233,18 +217,33 @@ export function TextStyle({
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="h-8 px-3 py-1"
-        >
-          {isExpanded ? (
-            <ChevronDown className="size-5" />
-          ) : (
-            <ChevronRight className="size-5" />
-          )}
-        </Button>
+        <div className="flex items-center gap-1">
+          {/* Delete Button - temporarily always shown for debugging */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            className="h-8 px-2 border border-red-300 border-dashed text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+            title={`Delete style (onDelete: ${!!onDelete})`}
+            disabled={!onDelete}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+
+          {/* Collapse Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-8 px-3 py-1"
+          >
+            {isExpanded ? (
+              <ChevronDown className="size-5" />
+            ) : (
+              <ChevronRight className="size-5" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Collapsible content */}
@@ -373,61 +372,10 @@ export function TextStyle({
               <Label htmlFor="manual-scale">Manual Scale</Label>
             </div>
           </div>
+
           {/* Manual Sizes Section */}
           {isManualScale && (
-            <div className="border-t border-border">
-              <div className="space-y-3">
-                <Label>Manual Sizes</Label>
-                {manualSizes.map((sizeEntry) => (
-                  <div
-                    key={sizeEntry.id}
-                    className="flex items-center space-x-2"
-                  >
-                    <Input
-                      placeholder="Name"
-                      value={sizeEntry.name}
-                      onChange={(e) =>
-                        updateManualSize(sizeEntry.id, "name", e.target.value)
-                      }
-                      className="flex-1"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Size"
-                      value={sizeEntry.size}
-                      onChange={(e) =>
-                        updateManualSize(
-                          sizeEntry.id,
-                          "size",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">px</span>
-                    {manualSizes.length > 1 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeManualSize(sizeEntry.id)}
-                        className="px-2"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addManualSize}
-                  className="w-full"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Size
-                </Button>
-              </div>
-            </div>
+            <ManualSizes sizes={manualSizes} onSizesChange={setManualSizes} />
           )}
         </>
       )}
