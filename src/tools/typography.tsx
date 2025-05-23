@@ -69,7 +69,7 @@ export function Typography() {
                 fontName: { family: "Arial", style: "Regular" },
               });
             }}
-            className="w-full p-4 transition-colors border-2 border-dashed rounded-lg text-muted-foreground bg-foreground/5 border-muted-foreground/25 hover:border-muted-foreground/50"
+            className="w-full p-6 text-sm font-medium transition-colors border-2 border-dashed rounded-lg text-muted-foreground bg-foreground/5 border-muted-foreground/25 hover:border-muted-foreground/50"
           >
             Add new style
           </button>
