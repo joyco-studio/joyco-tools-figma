@@ -1,18 +1,18 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
-import { pluginApi } from "./api";
-import { Layout } from "./components/layout/layout";
-import { Sidebar } from "./components/layout/sidebar";
 import { RectangleCreator } from "./tools/rectangle-creator";
 import { Typography } from "./tools/typography";
 import { TypeIcon } from "lucide-react";
+import { useFontsStore } from "./stores/fonts";
+import { AppSidebar } from "./components/layout/app-sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 const tools = [
   {
     id: "typography",
     label: "Typography",
-    icon: <TypeIcon className="w-4 h-4" />,
+    icon: <TypeIcon className="w-3 h-3" />,
   },
   {
     id: "rectangle-creator",
@@ -23,6 +23,12 @@ const tools = [
 
 function App() {
   const [activeTool, setActiveTool] = React.useState(tools[0].id);
+  const loadFonts = useFontsStore((state) => state.loadFonts);
+
+  // Load fonts once when the app starts
+  React.useEffect(() => {
+    loadFonts();
+  }, [loadFonts]);
 
   const renderTool = () => {
     switch (activeTool) {
@@ -36,16 +42,16 @@ function App() {
   };
 
   return (
-    <Layout.Container>
-      <Layout.Sidebar>
-        <Sidebar
-          items={tools}
-          activeItem={activeTool}
-          onItemClick={setActiveTool}
-        />
-      </Layout.Sidebar>
-      <Layout.Content>{renderTool()}</Layout.Content>
-    </Layout.Container>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex w-full h-screen overflow-hidden">
+        <AppSidebar activeItem={activeTool} onItemClick={setActiveTool} />
+        <SidebarInset className="flex-1 overflow-hidden">
+          <main className="flex flex-col h-full overflow-auto">
+            {renderTool()}
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
 

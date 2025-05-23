@@ -2,11 +2,15 @@ import * as React from "react";
 import { Button } from "../components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { TextStyle } from "./typography/components/text-style";
+import { useFontsStore } from "../stores/fonts";
 
-interface TextStyle {
+interface TextStyleData {
   id: string;
   name: string;
-  // Add more properties as needed
+  fontName: {
+    family: string;
+    style: string;
+  };
 }
 
 function generateId() {
@@ -14,34 +18,56 @@ function generateId() {
 }
 
 export function Typography() {
-  const [styles, setStyles] = React.useState<TextStyle[]>([]);
+  const [styles, setStyles] = React.useState<TextStyleData[]>([]);
 
-  const handleAddStyle = () => {
-    const newStyle: TextStyle = {
+  // Use the global fonts store
+  const { fonts, isLoading: fontsLoading } = useFontsStore();
+
+  const handleAddStyle = (style: Omit<TextStyleData, "id">) => {
+    const newStyle: TextStyleData = {
       id: generateId(),
-      name: `Style ${styles.length + 1}`,
+      ...style,
     };
     setStyles([...styles, newStyle]);
+  };
+
+  const handleUpdateStyle = (
+    id: string,
+    updatedStyle: Omit<TextStyleData, "id">
+  ) => {
+    setStyles((prevStyles) =>
+      prevStyles.map((style) =>
+        style.id === id ? { ...style, ...updatedStyle } : style
+      )
+    );
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 overflow-auto">
         {/* List of text styles */}
         <div className="space-y-4">
           {styles.map((style) => (
-            <TextStyle key={style.id} mode="edit" onAdd={handleAddStyle} />
+            <TextStyle
+              key={style.id}
+              mode="edit"
+              fonts={fonts}
+              fontsLoading={fontsLoading}
+              currentFont={style.fontName}
+              onUpdate={(updatedStyle) =>
+                handleUpdateStyle(style.id, updatedStyle)
+              }
+            />
           ))}
 
-          {/* Empty dashed area */}
-          <button
-            onClick={handleAddStyle}
-            className="flex items-center justify-center w-full gap-2 p-4 transition-colors border-2 border-dashed rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50 text-muted-foreground"
-          >
-            <PlusIcon className="w-4 h-4" />
-            <span>Add Text Style</span>
-          </button>
+          {/* Add new style */}
+          <TextStyle
+            mode="add"
+            onAdd={handleAddStyle}
+            fonts={fonts}
+            fontsLoading={fontsLoading}
+          />
         </div>
       </div>
 

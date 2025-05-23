@@ -5,6 +5,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -14,45 +15,84 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { pluginApi } from "@/api";
-
-interface TextStyleProps {
-  mode: "add" | "edit";
-  onAdd?: (style: {
-    name: string;
-    fontName: { family: string; style: string };
-  }) => void;
-}
 
 interface Font {
   family: string;
   style: string;
 }
 
-export function TextStyle({ mode = "add", onAdd }: TextStyleProps) {
+interface TextStyleProps {
+  mode: "add" | "edit";
+  fonts: Font[];
+  fontsLoading: boolean;
+  currentFont?: { family: string; style: string };
+  onAdd?: (style: {
+    name: string;
+    fontName: { family: string; style: string };
+  }) => void;
+  onUpdate?: (style: {
+    name: string;
+    fontName: { family: string; style: string };
+  }) => void;
+}
+
+export function TextStyle({
+  mode = "add",
+  fonts,
+  fontsLoading,
+  currentFont,
+  onAdd,
+  onUpdate,
+}: TextStyleProps) {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
-  const [fonts, setFonts] = React.useState<Font[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
+  // Initialize value based on current font for edit mode
+  const initialValue = currentFont
+    ? `${currentFont.family} - ${currentFont.style}`
+    : "";
+  const [value, setValue] = React.useState(initialValue);
+
+  // Update value when currentFont prop changes (for edit mode)
   React.useEffect(() => {
-    const loadFonts = async () => {
-      const availableFonts = await pluginApi.getAvailableFonts();
-      setFonts(availableFonts);
-    };
+    if (currentFont) {
+      setValue(`${currentFont.family} - ${currentFont.style}`);
+    }
+  }, [currentFont]);
 
-    loadFonts();
-  }, []);
+  // Filter fonts based on search query for better performance
+  const filteredFonts = React.useMemo(() => {
+    if (!searchQuery.trim()) {
+      // Show only first 50 fonts initially for better performance
+      return fonts.slice(0, 50);
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = fonts.filter(
+      (font) =>
+        font.family.toLowerCase().includes(query) ||
+        font.style.toLowerCase().includes(query)
+    );
+
+    // Limit filtered results to 100 for performance
+    return filtered.slice(0, 100);
+  }, [fonts, searchQuery]);
 
   const handleSelect = (currentValue: string) => {
     setValue(currentValue);
     setOpen(false);
+    setSearchQuery(""); // Reset search when selecting
 
-    if (onAdd) {
-      const [family, style] = currentValue.split(" - ");
-      onAdd({
-        name: `Style ${family}`,
-        fontName: { family, style },
-      });
+    const [family, style] = currentValue.split(" - ");
+    const styleData = {
+      name: `Style ${family}`,
+      fontName: { family, style },
+    };
+
+    if (mode === "add" && onAdd) {
+      onAdd(styleData);
+    } else if (mode === "edit" && onUpdate) {
+      onUpdate(styleData);
     }
   };
 
@@ -65,34 +105,54 @@ export function TextStyle({ mode = "add", onAdd }: TextStyleProps) {
             role="combobox"
             aria-expanded={open}
             className="justify-between w-full"
+            disabled={fontsLoading}
           >
-            {value ? value : "Select font..."}
+            {fontsLoading
+              ? "Loading fonts..."
+              : value
+              ? value
+              : "Select font..."}
             <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
-          <Command>
-            <CommandInput placeholder="Search font..." />
-            <CommandEmpty>No font found.</CommandEmpty>
-            <CommandGroup>
-              {fonts.map((font) => (
-                <CommandItem
-                  key={`${font.family}-${font.style}`}
-                  value={`${font.family} - ${font.style}`}
-                  onSelect={handleSelect}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === `${font.family} - ${font.style}`
-                        ? "opacity-100"
-                        : "opacity-0"
-                    )}
-                  />
-                  {font.family} - {font.style}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Search font..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+            />
+            <CommandList className="max-h-[300px] overflow-auto">
+              <CommandEmpty>
+                {searchQuery
+                  ? "No matching fonts found."
+                  : "No fonts available."}
+              </CommandEmpty>
+              <CommandGroup>
+                {filteredFonts.map((font) => (
+                  <CommandItem
+                    key={`${font.family}-${font.style}`}
+                    value={`${font.family} - ${font.style}`}
+                    onSelect={handleSelect}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === `${font.family} - ${font.style}`
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {font.family} - {font.style}
+                  </CommandItem>
+                ))}
+                {!searchQuery && fonts.length > 50 && (
+                  <div className="px-2 py-1 text-xs text-muted-foreground text-center border-t">
+                    Showing first 50 fonts. Use search to find more.
+                  </div>
+                )}
+              </CommandGroup>
+            </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
