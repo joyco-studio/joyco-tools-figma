@@ -40,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AutoResizeInput } from "./auto-resize-input";
 import { ManualSizes, type SizeEntry } from "./manual-sizes";
-import { pluginApi } from "../../../api";
+import { useFontsStore, useVariablesStore } from "../../../stores/fonts";
 
 interface Font {
   family: string;
@@ -56,8 +56,6 @@ interface Variable {
 }
 
 interface TextStyleProps {
-  fonts: Font[];
-  fontsLoading: boolean;
   currentFont?: { family: string; style: string };
   onChange?: (style: {
     name: string;
@@ -91,8 +89,6 @@ const RATIO_OPTIONS = [
 ];
 
 export function TextStyle({
-  fonts,
-  fontsLoading,
   currentFont,
   onChange,
   onDelete,
@@ -102,6 +98,10 @@ export function TextStyle({
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [isEditingName, setIsEditingName] = React.useState(false);
+
+  // Use global stores
+  const { fonts, isLoading: fontsLoading } = useFontsStore();
+  const { variables, isLoading: variablesLoading } = useVariablesStore();
 
   // Form state - default to all weights selected
   const [styleName, setStyleName] = React.useState("Untitled style");
@@ -117,8 +117,6 @@ export function TextStyle({
   ]);
 
   // Variables state
-  const [variables, setVariables] = React.useState<Variable[]>([]);
-  const [variablesLoading, setVariablesLoading] = React.useState(false);
   const [variablesOpen, setVariablesOpen] = React.useState(false);
   const [variableSearchQuery, setVariableSearchQuery] = React.useState("");
   const [selectedVariable, setSelectedVariable] =
@@ -162,31 +160,10 @@ export function TextStyle({
 
     // Limit filtered results to 100 for performance
     return filtered.slice(0, 100);
-  }, [fonts, searchQuery]);
+  }, [searchQuery, fonts]);
 
   // Multi-select for weights
   const [weightsOpen, setWeightsOpen] = React.useState(false);
-
-  // Fetch variables from Figma
-  const fetchVariables = React.useCallback(async () => {
-    setVariablesLoading(true);
-    try {
-      const variablesWithCollections = await pluginApi.getAvailableVariables();
-      setVariables(variablesWithCollections);
-    } catch (error) {
-      console.error("❌ Failed to fetch variables:", error);
-      setVariables([]);
-    } finally {
-      setVariablesLoading(false);
-    }
-  }, []);
-
-  // Load variables when variable source is selected
-  React.useEffect(() => {
-    if (fontSource === "variable") {
-      fetchVariables();
-    }
-  }, [fontSource, fetchVariables]);
 
   const getWeightsDisplayText = () => {
     if (selectedWeights.length === 0) return "Select weights...";
@@ -393,13 +370,8 @@ export function TextStyle({
                           role="combobox"
                           aria-expanded={open}
                           className="justify-between w-full"
-                          disabled={fontsLoading}
                         >
-                          {fontsLoading
-                            ? "Loading fonts..."
-                            : value
-                            ? value
-                            : "Select font..."}
+                          {value ? value : "Select font..."}
                           <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
                         </Button>
                       </PopoverTrigger>
@@ -469,11 +441,22 @@ export function TextStyle({
                           className="justify-between w-full"
                           disabled={variablesLoading}
                         >
-                          {variablesLoading
-                            ? "Loading variables..."
-                            : selectedVariable
-                            ? `${selectedVariable.name} (${selectedVariable.resolvedType})`
-                            : "Select variable..."}
+                          <div className="flex items-center min-w-0 gap-2">
+                            {variablesLoading ? (
+                              "Loading variables..."
+                            ) : selectedVariable ? (
+                              <>
+                                <span className="truncate">
+                                  {selectedVariable.name}
+                                </span>
+                                <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
+                                  {selectedVariable.resolvedType}
+                                </span>
+                              </>
+                            ) : (
+                              "Select variable..."
+                            )}
+                          </div>
                           <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
                         </Button>
                       </PopoverTrigger>

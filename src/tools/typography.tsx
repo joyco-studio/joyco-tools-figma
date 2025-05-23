@@ -2,7 +2,7 @@ import * as React from "react";
 import { Button } from "../components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { TextStyle } from "./typography/components/text-style";
-import { useFontsStore } from "../stores/fonts";
+import { useFontsStore, useVariablesStore } from "../stores/fonts";
 
 interface TextStyleData {
   id: string;
@@ -20,8 +20,9 @@ function generateId() {
 export function Typography() {
   const [styles, setStyles] = React.useState<TextStyleData[]>([]);
 
-  // Use the global fonts store
+  // Use the global fonts and variables stores
   const { fonts, isLoading: fontsLoading } = useFontsStore();
+  const { variables, isLoading: variablesLoading } = useVariablesStore();
 
   const handleAddStyle = (style: Omit<TextStyleData, "id">) => {
     const newStyle: TextStyleData = {
@@ -42,6 +43,10 @@ export function Typography() {
     );
   };
 
+  const handleDeleteStyle = (id: string) => {
+    setStyles((prevStyles) => prevStyles.filter((style) => style.id !== id));
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
@@ -52,12 +57,11 @@ export function Typography() {
             <TextStyle
               key={style.id}
               mode="edit"
-              fonts={fonts}
-              fontsLoading={fontsLoading}
               currentFont={style.fontName}
               onChange={(updatedStyle) =>
                 handleUpdateStyle(style.id, updatedStyle)
               }
+              onDelete={() => handleDeleteStyle(style.id)}
             />
           ))}
 

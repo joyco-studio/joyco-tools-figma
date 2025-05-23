@@ -4,7 +4,7 @@ import "./styles/globals.css";
 import { RectangleCreator } from "./tools/rectangle-creator";
 import { Typography } from "./tools/typography";
 import { TypeIcon } from "lucide-react";
-import { useFontsStore } from "./stores/fonts";
+import { useFontsStore, useVariablesStore } from "./stores/fonts";
 import { AppSidebar } from "./components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
@@ -24,11 +24,13 @@ const tools = [
 function App() {
   const [activeTool, setActiveTool] = React.useState(tools[0].id);
   const loadFonts = useFontsStore((state) => state.loadFonts);
+  const loadVariables = useVariablesStore((state) => state.loadVariables);
 
-  // Load fonts once when the app starts
+  // Load fonts and variables once when the app starts
   React.useEffect(() => {
     loadFonts();
-  }, [loadFonts]);
+    loadVariables();
+  }, [loadFonts, loadVariables]);
 
   const renderTool = () => {
     switch (activeTool) {
