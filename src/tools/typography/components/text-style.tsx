@@ -40,10 +40,19 @@ import {
 import { cn } from "@/lib/utils";
 import { AutoResizeInput } from "./auto-resize-input";
 import { ManualSizes, type SizeEntry } from "./manual-sizes";
+import { pluginApi } from "../../../api";
 
 interface Font {
   family: string;
   style: string;
+}
+
+interface Variable {
+  id: string;
+  name: string;
+  resolvedType: string;
+  description?: string;
+  collectionName?: string;
 }
 
 interface TextStyleProps {
@@ -107,6 +116,14 @@ export function TextStyle({
     { id: "1", name: "size-1", size: 10 },
   ]);
 
+  // Variables state
+  const [variables, setVariables] = React.useState<Variable[]>([]);
+  const [variablesLoading, setVariablesLoading] = React.useState(false);
+  const [variablesOpen, setVariablesOpen] = React.useState(false);
+  const [variableSearchQuery, setVariableSearchQuery] = React.useState("");
+  const [selectedVariable, setSelectedVariable] =
+    React.useState<Variable | null>(null);
+
   // Initialize value based on current font
   const initialValue = currentFont
     ? `${currentFont.family.trim()} - ${currentFont.style.trim()}`
@@ -149,6 +166,27 @@ export function TextStyle({
 
   // Multi-select for weights
   const [weightsOpen, setWeightsOpen] = React.useState(false);
+
+  // Fetch variables from Figma
+  const fetchVariables = React.useCallback(async () => {
+    setVariablesLoading(true);
+    try {
+      const variablesWithCollections = await pluginApi.getAvailableVariables();
+      setVariables(variablesWithCollections);
+    } catch (error) {
+      console.error("❌ Failed to fetch variables:", error);
+      setVariables([]);
+    } finally {
+      setVariablesLoading(false);
+    }
+  }, []);
+
+  // Load variables when variable source is selected
+  React.useEffect(() => {
+    if (fontSource === "variable") {
+      fetchVariables();
+    }
+  }, [fontSource, fetchVariables]);
 
   const getWeightsDisplayText = () => {
     if (selectedWeights.length === 0) return "Select weights...";
@@ -219,6 +257,34 @@ export function TextStyle({
     ) {
       onDelete();
     }
+  };
+
+  // Filter variables based on search query for better performance
+  const filteredVariables = React.useMemo(() => {
+    if (!variableSearchQuery.trim()) {
+      // Show first 100 variables
+      return variables.slice(0, 100);
+    }
+
+    const query = variableSearchQuery.toLowerCase();
+    const filtered = variables.filter(
+      (variable) =>
+        variable.name.toLowerCase().includes(query) ||
+        variable.collectionName?.toLowerCase().includes(query) ||
+        variable.resolvedType.toLowerCase().includes(query)
+    );
+
+    // Limit filtered results to 100 for performance
+    return filtered.slice(0, 100);
+  }, [variables, variableSearchQuery]);
+
+  const handleVariableSelect = (variable: Variable) => {
+    setSelectedVariable(variable);
+    setVariablesOpen(false);
+    setVariableSearchQuery(""); // Reset search when selecting
+
+    // TODO: Handle variable selection for typography
+    console.log("Selected variable:", variable);
   };
 
   return (
@@ -298,27 +364,24 @@ export function TextStyle({
               <Label>Font Family</Label>
               <div className="flex gap-4">
                 {/* Font Source Toggle */}
-                <div className="space-y-2">
-                  <ToggleGroup
-                    type="single"
-                    value={fontSource}
-                    onValueChange={(value) =>
-                      value && setFontSource(value as string)
-                    }
-                    className="justify-start"
+                <ToggleGroup
+                  type="single"
+                  value={fontSource}
+                  onValueChange={(value) =>
+                    value && setFontSource(value as string)
+                  }
+                  className="justify-start gap-0 [&>*]:border-r-0 [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:last-child]:border-r"
+                >
+                  <ToggleGroupItem
+                    value="type"
+                    className="border-r-0 rounded-r-none"
                   >
-                    <ToggleGroupItem value="type" className="gap-2">
-                      <Type className="size-4" />
-                    </ToggleGroupItem>
-                    <ToggleGroupItem
-                      value="variable"
-                      className="gap-2"
-                      disabled
-                    >
-                      <Hexagon className="size-4" />
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
+                    <Type className="size-4" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="variable" className="rounded-l-none">
+                    <Hexagon className="size-4" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
 
                 {/* Font Family - Only show when type is selected */}
                 {fontSource === "type" && (
@@ -346,6 +409,7 @@ export function TextStyle({
                             placeholder="Search font..."
                             value={searchQuery}
                             onValueChange={setSearchQuery}
+                            className="focus:outline-none focus:ring-0"
                           />
                           <CommandList className="max-h-[300px] overflow-auto">
                             <CommandEmpty>
@@ -382,6 +446,97 @@ export function TextStyle({
                                   more.
                                 </div>
                               )}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+
+                {/* Variable Selector - Only show when variable is selected */}
+                {fontSource === "variable" && (
+                  <div className="flex-1 space-y-2">
+                    <Popover
+                      open={variablesOpen}
+                      onOpenChange={setVariablesOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={variablesOpen}
+                          className="justify-between w-full"
+                          disabled={variablesLoading}
+                        >
+                          {variablesLoading
+                            ? "Loading variables..."
+                            : selectedVariable
+                            ? `${selectedVariable.name} (${selectedVariable.resolvedType})`
+                            : "Select variable..."}
+                          <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Search variables..."
+                            value={variableSearchQuery}
+                            onValueChange={setVariableSearchQuery}
+                            className="focus:outline-none focus:ring-0"
+                          />
+                          <CommandList className="max-h-[300px] overflow-auto">
+                            <CommandEmpty>
+                              {variableSearchQuery
+                                ? "No matching variables found."
+                                : variables.length === 0
+                                ? "No typography variables available."
+                                : "No variables found."}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {filteredVariables.map((variable) => {
+                                const isSelected =
+                                  selectedVariable?.id === variable.id;
+
+                                return (
+                                  <CommandItem
+                                    key={variable.id}
+                                    value={`${variable.name}-${variable.id}`}
+                                    onSelect={() =>
+                                      handleVariableSelect(variable)
+                                    }
+                                    className={cn("cursor-pointer")}
+                                  >
+                                    <div className="flex items-center w-4 mr-2">
+                                      {isSelected && (
+                                        <Check className="w-4 h-4 text-foreground" />
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">
+                                          {variable.name}
+                                        </span>
+                                        <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground">
+                                          {variable.resolvedType}
+                                        </span>
+                                      </div>
+                                      {variable.collectionName && (
+                                        <span className="text-xs truncate text-muted-foreground">
+                                          {variable.collectionName}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                              {!variableSearchQuery &&
+                                variables.length > 100 && (
+                                  <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
+                                    Showing first 100 variables. Use search to
+                                    find more.
+                                  </div>
+                                )}
                             </CommandGroup>
                           </CommandList>
                         </Command>
