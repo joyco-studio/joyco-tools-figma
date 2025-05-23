@@ -88,21 +88,16 @@ export function TextStyle({
   onDelete,
   mode,
 }: TextStyleProps) {
-  // Debug log to see if onDelete is being passed
-  React.useEffect(() => {
-    console.log("TextStyle component props:", { mode, onDelete: !!onDelete });
-  }, [mode, onDelete]);
-
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [isEditingName, setIsEditingName] = React.useState(false);
 
-  // Form state
+  // Form state - default to all weights selected
   const [styleName, setStyleName] = React.useState("Untitled style");
-  const [selectedWeights, setSelectedWeights] = React.useState<string[]>([
-    "400",
-  ]);
+  const [selectedWeights, setSelectedWeights] = React.useState<string[]>(
+    WEIGHT_OPTIONS.map((w) => w.value) // Select all weights by default
+  );
   const [includeItalics, setIncludeItalics] = React.useState(false);
   const [selectedRatio, setSelectedRatio] = React.useState("1.2");
   const [isManualScale, setIsManualScale] = React.useState(false);
@@ -112,22 +107,31 @@ export function TextStyle({
 
   // Initialize value based on current font
   const initialValue = currentFont
-    ? `${currentFont.family} - ${currentFont.style}`
+    ? `${currentFont.family.trim()} - ${currentFont.style.trim()}`
     : "";
   const [value, setValue] = React.useState(initialValue);
 
   // Update value when currentFont prop changes
   React.useEffect(() => {
     if (currentFont) {
-      setValue(`${currentFont.family} - ${currentFont.style}`);
+      const newValue = `${currentFont.family.trim()} - ${currentFont.style.trim()}`;
+      setValue(newValue);
+      console.log("Setting value from currentFont:", newValue);
+      console.log("Available fonts count:", fonts.length);
+
+      // Check if this font exists in the fonts array
+      const fontExists = fonts.some(
+        (font) => `${font.family.trim()} - ${font.style.trim()}` === newValue
+      );
+      console.log("Font exists in fonts array:", fontExists);
     }
-  }, [currentFont]);
+  }, [currentFont, fonts]);
 
   // Filter fonts based on search query for better performance
   const filteredFonts = React.useMemo(() => {
     if (!searchQuery.trim()) {
-      // Show only first 50 fonts initially for better performance
-      return fonts.slice(0, 50);
+      // Show first 100 fonts
+      return fonts.slice(0, 100);
     }
 
     const query = searchQuery.toLowerCase();
@@ -141,15 +145,51 @@ export function TextStyle({
     return filtered.slice(0, 100);
   }, [fonts, searchQuery]);
 
+  // Multi-select for weights
+  const [weightsOpen, setWeightsOpen] = React.useState(false);
+
+  const getWeightsDisplayText = () => {
+    if (selectedWeights.length === 0) return "Select weights...";
+    if (selectedWeights.length === WEIGHT_OPTIONS.length) return "All weights";
+    if (selectedWeights.length === 1) {
+      const weight = WEIGHT_OPTIONS.find((w) => w.value === selectedWeights[0]);
+      return weight?.label || selectedWeights[0];
+    }
+    return `${selectedWeights.length} weights selected`;
+  };
+
+  const handleWeightToggle = (weightValue: string) => {
+    setSelectedWeights((prev) =>
+      prev.includes(weightValue)
+        ? prev.filter((w) => w !== weightValue)
+        : [...prev, weightValue]
+    );
+  };
+
+  const handleToggleAllWeights = () => {
+    if (selectedWeights.length === WEIGHT_OPTIONS.length) {
+      // All are selected, so clear them
+      setSelectedWeights([]);
+    } else {
+      // Not all are selected, so select all
+      setSelectedWeights(WEIGHT_OPTIONS.map((w) => w.value));
+    }
+  };
+
+  const getAllClearButtonText = () => {
+    return selectedWeights.length === WEIGHT_OPTIONS.length ? "Clear" : "All";
+  };
+
   const handleSelect = (currentValue: string) => {
-    setValue(currentValue);
+    const trimmedValue = currentValue.trim();
+    setValue(trimmedValue);
     setOpen(false);
     setSearchQuery(""); // Reset search when selecting
 
-    const [family, style] = currentValue.split(" - ");
+    const [family, style] = trimmedValue.split(" - ");
     const styleData = {
       name: styleName || `Style ${family}`,
-      fontName: { family, style },
+      fontName: { family: family.trim(), style: style.trim() },
     };
 
     if (onChange) {
@@ -218,17 +258,18 @@ export function TextStyle({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Delete Button - temporarily always shown for debugging */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            className="h-8 px-2 border border-red-300 border-dashed text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-            title={`Delete style (onDelete: ${!!onDelete})`}
-            disabled={!onDelete}
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          {/* Delete Button */}
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              className="h-8 px-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              title="Delete style"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          )}
 
           {/* Collapse Toggle */}
           <Button
@@ -249,121 +290,167 @@ export function TextStyle({
       {/* Collapsible content */}
       {isExpanded && (
         <>
-          <div className="p-4 space-y-4">
-            {/* Font Family */}
-            <div className="space-y-2">
-              <Label>Font Family</Label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="justify-between w-full"
-                    disabled={fontsLoading}
-                  >
-                    {fontsLoading
-                      ? "Loading fonts..."
-                      : value
-                      ? value
-                      : "Select font..."}
-                    <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Search font..."
-                      value={searchQuery}
-                      onValueChange={setSearchQuery}
-                    />
-                    <CommandList className="max-h-[300px] overflow-auto">
-                      <CommandEmpty>
-                        {searchQuery
-                          ? "No matching fonts found."
-                          : "No fonts available."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {filteredFonts.map((font) => (
-                          <CommandItem
-                            key={`${font.family}-${font.style}`}
-                            value={`${font.family} - ${font.style}`}
-                            onSelect={handleSelect}
+          <div className="p-4">
+            {/* 2-column grid layout */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Font Family */}
+              <div className="space-y-2">
+                <Label>Font Family</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="justify-between w-full"
+                      disabled={fontsLoading}
+                    >
+                      {fontsLoading
+                        ? "Loading fonts..."
+                        : value
+                        ? value
+                        : "Select font..."}
+                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search font..."
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                      />
+                      <CommandList className="max-h-[300px] overflow-auto">
+                        <CommandEmpty>
+                          {searchQuery
+                            ? "No matching fonts found."
+                            : "No fonts available."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {filteredFonts.map((font, index) => {
+                            const fontValue = `${font.family.trim()} - ${font.style.trim()}`;
+                            const isSelected = value?.trim() === fontValue;
+
+                            return (
+                              <CommandItem
+                                key={`${font.family}-${font.style}`}
+                                value={fontValue}
+                                onSelect={handleSelect}
+                                className={cn("cursor-pointer")}
+                              >
+                                <div className="flex items-center w-4 mr-2">
+                                  {isSelected && (
+                                    <Check className="w-4 h-4 text-foreground" />
+                                  )}
+                                </div>
+                                <span>
+                                  {font.family.trim()} - {font.style.trim()}
+                                </span>
+                              </CommandItem>
+                            );
+                          })}
+                          {!searchQuery && fonts.length > 100 && (
+                            <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
+                              Showing first 100 fonts. Use search to find more.
+                            </div>
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Font Weights Multi-Select */}
+              <div className="space-y-2">
+                <Label>Font Weights</Label>
+                <Popover open={weightsOpen} onOpenChange={setWeightsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={weightsOpen}
+                      className="justify-between w-full"
+                    >
+                      {getWeightsDisplayText()}
+                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <div className="flex items-center justify-between p-2 border-b">
+                        <span className="text-sm font-medium">
+                          Select Weights
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={handleToggleAllWeights}
                           >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                value === `${font.family} - ${font.style}`
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {font.family} - {font.style}
-                          </CommandItem>
-                        ))}
-                        {!searchQuery && fonts.length > 50 && (
-                          <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
-                            Showing first 50 fonts. Use search to find more.
-                          </div>
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                            {getAllClearButtonText()}
+                          </Button>
+                        </div>
+                      </div>
+                      <CommandList className="max-h-[200px] overflow-auto">
+                        <CommandGroup>
+                          {WEIGHT_OPTIONS.map((weight) => (
+                            <CommandItem
+                              key={weight.value}
+                              onSelect={() => handleWeightToggle(weight.value)}
+                              className="cursor-pointer"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedWeights.includes(weight.value)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <span style={{ fontWeight: weight.value }}>
+                                {weight.label}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Scale Ratio */}
+              <div className="space-y-2">
+                <Label>Scale Ratio</Label>
+                <Select value={selectedRatio} onValueChange={setSelectedRatio}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ratio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RATIO_OPTIONS.map((ratio) => (
+                      <SelectItem key={ratio.value} value={ratio.value}>
+                        {ratio.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Include Italics */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="include-italics"
+                  checked={includeItalics}
+                  onCheckedChange={setIncludeItalics}
+                />
+                <Label htmlFor="include-italics">Include Italics</Label>
+              </div>
             </div>
 
-            {/* Weight Selection */}
-            <div className="space-y-2">
-              <Label>Font Weights</Label>
-              <ToggleGroup
-                type="multiple"
-                value={selectedWeights}
-                onValueChange={(value) => setSelectedWeights(value as string[])}
-                className="flex-wrap justify-start"
-              >
-                {WEIGHT_OPTIONS.map((weight) => (
-                  <ToggleGroupItem
-                    key={weight.value}
-                    value={weight.value}
-                    className="text-xs"
-                    style={{ fontWeight: weight.value }}
-                  >
-                    {weight.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-
-            {/* Include Italics */}
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="include-italics"
-                checked={includeItalics}
-                onCheckedChange={setIncludeItalics}
-              />
-              <Label htmlFor="include-italics">Include Italics</Label>
-            </div>
-
-            {/* Scale Ratio */}
-            <div className="space-y-2">
-              <Label>Scale Ratio</Label>
-              <Select value={selectedRatio} onValueChange={setSelectedRatio}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select ratio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RATIO_OPTIONS.map((ratio) => (
-                    <SelectItem key={ratio.value} value={ratio.value}>
-                      {ratio.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Manual Scale Toggle */}
-            <div className="flex items-center space-x-2">
+            {/* Manual Scale Toggle - Full width below grid */}
+            <div className="flex items-center mt-4 space-x-2">
               <Switch
                 id="manual-scale"
                 checked={isManualScale}
