@@ -2,7 +2,6 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { TextStyle } from "./components/text-style";
 import { generateId } from "@/lib/utils";
-import { pluginApi } from "@/api";
 
 interface TextStyleData {
   id: string;
@@ -11,11 +10,6 @@ interface TextStyleData {
     family: string;
     style: string;
   };
-}
-
-interface Font {
-  family: string;
-  style: string;
 }
 
 export function Typography() {
@@ -32,29 +26,6 @@ export function Typography() {
       fontName: { family: "Inter", style: "Regular" },
     },
   ]);
-  const [fonts, setFonts] = React.useState<Font[]>([]);
-  const [fontsLoading, setFontsLoading] = React.useState(true);
-
-  // Load fonts once when the component mounts
-  React.useEffect(() => {
-    const loadFonts = async () => {
-      try {
-        console.log("Starting to load fonts...");
-        const availableFonts = await pluginApi.getAvailableFonts();
-        console.log("Fonts loaded:", availableFonts.length, "fonts");
-        console.log("First few fonts:", availableFonts.slice(0, 5));
-        setFonts(availableFonts);
-      } catch (error) {
-        console.error("Error loading fonts:", error);
-        setFonts([]);
-      } finally {
-        setFontsLoading(false);
-        console.log("Font loading finished, fontsLoading set to false");
-      }
-    };
-
-    loadFonts();
-  }, []);
 
   const handleAddStyle = (style: Omit<TextStyleData, "id">) => {
     const newStyle: TextStyleData = {
@@ -89,8 +60,6 @@ export function Typography() {
             <TextStyle
               key={style.id}
               mode="edit"
-              fonts={fonts}
-              fontsLoading={fontsLoading}
               currentFont={style.fontName}
               onChange={(updatedStyle) =>
                 handleUpdateStyle(style.id, updatedStyle)
@@ -100,12 +69,7 @@ export function Typography() {
           ))}
 
           {/* Add new style */}
-          <TextStyle
-            mode="add"
-            onChange={handleAddStyle}
-            fonts={fonts}
-            fontsLoading={fontsLoading}
-          />
+          <TextStyle mode="add" onChange={handleAddStyle} />
         </div>
       </div>
 
@@ -119,12 +83,11 @@ export function Typography() {
           onClick={() => {
             // TODO: Implement apply logic
           }}
+          className="cursor-default"
         >
           Apply
         </Button>
       </div>
-
-      {/* PopoverTest for debugging */}
     </div>
   );
 }

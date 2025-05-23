@@ -290,7 +290,7 @@ export function TextStyle({
             ) : (
               <button
                 onClick={() => setIsEditingName(true)}
-                className="flex items-center px-3 py-2 text-sm font-medium text-left rounded-md cursor-pointer h-7 text-foreground/50 hover:text-foreground/80 focus:outline-none focus:text-foreground/80 hover:bg-muted/50"
+                className="flex items-center px-3 py-2 text-sm font-medium text-left rounded-md cursor-default h-7 text-foreground/50 hover:text-foreground/80 focus:outline-none focus:text-foreground/80 hover:bg-muted/50"
                 style={{ lineHeight: "12px" }}
               >
                 <span>{styleName}</span>
@@ -309,7 +309,7 @@ export function TextStyle({
               variant="ghost"
               size="sm"
               onClick={handleDelete}
-              className="h-8 px-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              className="h-8 px-2 cursor-default text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
               title="Delete style"
             >
               <Trash2 className="size-4" />
@@ -321,7 +321,7 @@ export function TextStyle({
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 px-3 py-1"
+            className="h-8 px-3 py-1 cursor-default"
           >
             {isExpanded ? (
               <ChevronDown className="size-5" />
@@ -369,7 +369,8 @@ export function TextStyle({
                           variant="outline"
                           role="combobox"
                           aria-expanded={open}
-                          className="justify-between w-full"
+                          className="justify-between w-full cursor-default"
+                          disabled={fontsLoading}
                         >
                           {value ? value : "Select font..."}
                           <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
@@ -399,7 +400,7 @@ export function TextStyle({
                                     key={`${font.family}-${font.style}`}
                                     value={fontValue}
                                     onSelect={handleSelect}
-                                    className={cn("cursor-pointer")}
+                                    className={cn("cursor-default")}
                                   >
                                     <div className="flex items-center w-4 mr-2">
                                       {isSelected && (
@@ -438,7 +439,7 @@ export function TextStyle({
                           variant="outline"
                           role="combobox"
                           aria-expanded={variablesOpen}
-                          className="justify-between w-full"
+                          className="justify-between w-full cursor-default"
                           disabled={variablesLoading}
                         >
                           <div className="flex items-center min-w-0 gap-2">
@@ -488,7 +489,7 @@ export function TextStyle({
                                     onSelect={() =>
                                       handleVariableSelect(variable)
                                     }
-                                    className={cn("cursor-pointer")}
+                                    className={cn("cursor-default")}
                                   >
                                     <div className="flex items-center w-4 mr-2">
                                       {isSelected && (
@@ -541,7 +542,7 @@ export function TextStyle({
                       variant="outline"
                       role="combobox"
                       aria-expanded={weightsOpen}
-                      className="justify-between w-full"
+                      className="justify-between w-full cursor-default"
                     >
                       {getWeightsDisplayText()}
                       <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
@@ -557,7 +558,7 @@ export function TextStyle({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs"
+                            className="h-6 px-2 text-xs cursor-default"
                             onClick={handleToggleAllWeights}
                           >
                             {getAllClearButtonText()}
@@ -570,7 +571,7 @@ export function TextStyle({
                             <CommandItem
                               key={weight.value}
                               onSelect={() => handleWeightToggle(weight.value)}
-                              className="cursor-pointer"
+                              className="cursor-default"
                             >
                               <Check
                                 className={cn(

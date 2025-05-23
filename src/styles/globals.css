@@ -95,3 +95,14 @@
     @apply bg-background text-foreground font-mono;
   }
 }
+
+/* Figma-like cursor styling */
+button,
+[role="button"],
+[role="combobox"],
+[role="option"],
+[role="menuitem"],
+select,
+.cursor-pointer {
+  cursor: default !important;
+}
