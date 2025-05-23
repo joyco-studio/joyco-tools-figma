@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { FormField } from "../../../components/ui/form-field";
 import { Switch } from "../../../components/ui/switch";
 import {
   ToggleGroup,
@@ -110,7 +111,7 @@ export function TextStyle({
     WEIGHT_OPTIONS.map((w) => w.value) // Select all weights by default
   );
   const [includeItalics, setIncludeItalics] = React.useState(false);
-  const [selectedRatio, setSelectedRatio] = React.useState("1.2");
+  const [selectedRatios, setSelectedRatios] = React.useState<string[]>(["1.2"]); // Default to Minor Third
   const [isManualScale, setIsManualScale] = React.useState(false);
   const [manualSizes, setManualSizes] = React.useState<SizeEntry[]>([
     { id: "1", name: "size-1", size: 10 },
@@ -195,6 +196,41 @@ export function TextStyle({
 
   const getAllClearButtonText = () => {
     return selectedWeights.length === WEIGHT_OPTIONS.length ? "Clear" : "All";
+  };
+
+  // Multi-select for ratios
+  const [ratiosOpen, setRatiosOpen] = React.useState(false);
+
+  const getRatiosDisplayText = () => {
+    if (selectedRatios.length === 0) return "Select ratios...";
+    if (selectedRatios.length === RATIO_OPTIONS.length) return "All ratios";
+    if (selectedRatios.length === 1) {
+      const ratio = RATIO_OPTIONS.find((r) => r.value === selectedRatios[0]);
+      return ratio?.label || selectedRatios[0];
+    }
+    return `${selectedRatios.length} ratios selected`;
+  };
+
+  const handleRatioToggle = (ratioValue: string) => {
+    setSelectedRatios((prev) =>
+      prev.includes(ratioValue)
+        ? prev.filter((r) => r !== ratioValue)
+        : [...prev, ratioValue]
+    );
+  };
+
+  const handleToggleAllRatios = () => {
+    if (selectedRatios.length === RATIO_OPTIONS.length) {
+      // All are selected, so clear them
+      setSelectedRatios([]);
+    } else {
+      // Not all are selected, so select all
+      setSelectedRatios(RATIO_OPTIONS.map((r) => r.value));
+    }
+  };
+
+  const getAllClearRatiosButtonText = () => {
+    return selectedRatios.length === RATIO_OPTIONS.length ? "Clear" : "All";
   };
 
   const handleSelect = (currentValue: string) => {
@@ -337,8 +373,7 @@ export function TextStyle({
         <>
           <div className="flex flex-col gap-6 px-4 py-6">
             {/* Font Source & Family - Full Width Row */}
-            <div className="flex flex-col gap-4">
-              <Label>Font Family</Label>
+            <FormField label="Font Family">
               <div className="flex gap-4">
                 {/* Font Source Toggle */}
                 <ToggleGroup
@@ -362,7 +397,7 @@ export function TextStyle({
 
                 {/* Font Family - Only show when type is selected */}
                 {fontSource === "type" && (
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1">
                     <Popover open={open} onOpenChange={setOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -429,7 +464,7 @@ export function TextStyle({
 
                 {/* Variable Selector - Only show when variable is selected */}
                 {fontSource === "variable" && (
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1">
                     <Popover
                       open={variablesOpen}
                       onOpenChange={setVariablesOpen}
@@ -455,7 +490,7 @@ export function TextStyle({
                                 </span>
                               </>
                             ) : (
-                              <span className="text-muted-foreground">
+                              <span className="font-normal text-muted-foreground">
                                 Select variable...
                               </span>
                             )}
@@ -531,13 +566,12 @@ export function TextStyle({
                   </div>
                 )}
               </div>
-            </div>
+            </FormField>
 
             {/* 2-column grid for other options */}
             <div className="grid grid-cols-2 gap-4">
               {/* Font Weights Multi-Select */}
-              <div className="space-y-2">
-                <Label>Font Weights</Label>
+              <FormField label="Weights">
                 <Popover open={weightsOpen} onOpenChange={setWeightsOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -593,24 +627,64 @@ export function TextStyle({
                     </Command>
                   </PopoverContent>
                 </Popover>
-              </div>
+              </FormField>
 
-              {/* Scale Ratio */}
-              <div className="space-y-2">
-                <Label>Scale Ratio</Label>
-                <Select value={selectedRatio} onValueChange={setSelectedRatio}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ratio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RATIO_OPTIONS.map((ratio) => (
-                      <SelectItem key={ratio.value} value={ratio.value}>
-                        {ratio.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Scale Ratios Multi-Select */}
+              <FormField label="Scale Ratios">
+                <Popover open={ratiosOpen} onOpenChange={setRatiosOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={ratiosOpen}
+                      className="justify-between w-full cursor-default"
+                    >
+                      {getRatiosDisplayText()}
+                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <div className="flex items-center justify-between p-2 border-b">
+                        <span className="text-sm font-medium">
+                          Select Ratios
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs cursor-default"
+                            onClick={handleToggleAllRatios}
+                          >
+                            {getAllClearRatiosButtonText()}
+                          </Button>
+                        </div>
+                      </div>
+                      <CommandList className="max-h-[200px] overflow-auto">
+                        <CommandGroup>
+                          {RATIO_OPTIONS.map((ratio) => (
+                            <CommandItem
+                              key={ratio.value}
+                              onSelect={() => handleRatioToggle(ratio.value)}
+                              className="cursor-default"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedRatios.includes(ratio.value)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <span>{ratio.label}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </FormField>
 
               {/* Include Italics */}
               <div className="flex items-center space-x-2">
