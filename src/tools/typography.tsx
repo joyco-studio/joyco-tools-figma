@@ -45,7 +45,7 @@ export function Typography() {
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 p-4 overflow-auto">
         {/* List of text styles */}
         <div className="space-y-4">
           {styles.map((style) => (
@@ -55,19 +55,24 @@ export function Typography() {
               fonts={fonts}
               fontsLoading={fontsLoading}
               currentFont={style.fontName}
-              onUpdate={(updatedStyle) =>
+              onChange={(updatedStyle) =>
                 handleUpdateStyle(style.id, updatedStyle)
               }
             />
           ))}
 
           {/* Add new style */}
-          <TextStyle
-            mode="add"
-            onAdd={handleAddStyle}
-            fonts={fonts}
-            fontsLoading={fontsLoading}
-          />
+          <button
+            onClick={() => {
+              handleAddStyle({
+                name: "New Style",
+                fontName: { family: "Arial", style: "Regular" },
+              });
+            }}
+            className="w-full p-4 transition-colors border-2 border-dashed rounded-lg text-muted-foreground bg-foreground/5 border-muted-foreground/25 hover:border-muted-foreground/50"
+          >
+            Add new style
+          </button>
         </div>
       </div>
 

@@ -22,38 +22,32 @@ interface Font {
 }
 
 interface TextStyleProps {
-  mode: "add" | "edit";
   fonts: Font[];
   fontsLoading: boolean;
   currentFont?: { family: string; style: string };
-  onAdd?: (style: {
+  onChange?: (style: {
     name: string;
     fontName: { family: string; style: string };
   }) => void;
-  onUpdate?: (style: {
-    name: string;
-    fontName: { family: string; style: string };
-  }) => void;
+  mode: "add" | "edit";
 }
 
 export function TextStyle({
-  mode = "add",
   fonts,
   fontsLoading,
   currentFont,
-  onAdd,
-  onUpdate,
+  onChange,
 }: TextStyleProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
-  // Initialize value based on current font for edit mode
+  // Initialize value based on current font
   const initialValue = currentFont
     ? `${currentFont.family} - ${currentFont.style}`
     : "";
   const [value, setValue] = React.useState(initialValue);
 
-  // Update value when currentFont prop changes (for edit mode)
+  // Update value when currentFont prop changes
   React.useEffect(() => {
     if (currentFont) {
       setValue(`${currentFont.family} - ${currentFont.style}`);
@@ -89,15 +83,13 @@ export function TextStyle({
       fontName: { family, style },
     };
 
-    if (mode === "add" && onAdd) {
-      onAdd(styleData);
-    } else if (mode === "edit" && onUpdate) {
-      onUpdate(styleData);
+    if (onChange) {
+      onChange(styleData);
     }
   };
 
   return (
-    <div className="w-full p-4 transition-colors border-2 border-dashed rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50">
+    <div className="w-full p-4 transition-colors border-2 rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -147,7 +139,7 @@ export function TextStyle({
                   </CommandItem>
                 ))}
                 {!searchQuery && fonts.length > 50 && (
-                  <div className="px-2 py-1 text-xs text-muted-foreground text-center border-t">
+                  <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
                     Showing first 50 fonts. Use search to find more.
                   </div>
                 )}
