@@ -10,10 +10,34 @@ export const pluginApi = createPluginAPI({
   async getAvailableFonts() {
     try {
       const fonts = await figma.listAvailableFontsAsync();
-      return fonts.map((font) => ({
-        family: font.fontName.family,
-        style: font.fontName.style,
-      }));
+
+      // Group fonts by family and collect all available styles/weights
+      const fontFamilies = new Map();
+
+      fonts.forEach((font) => {
+        const family = font.fontName.family;
+        const style = font.fontName.style;
+
+        if (!fontFamilies.has(family)) {
+          fontFamilies.set(family, {
+            family: family,
+            styles: [],
+          });
+        }
+
+        fontFamilies.get(family).styles.push(style);
+      });
+
+      // Convert to array and sort families alphabetically
+      const groupedFonts = Array.from(fontFamilies.values())
+        .map((fontFamily) => ({
+          family: fontFamily.family,
+          styles: fontFamily.styles.sort(), // Sort styles alphabetically
+        }))
+        .sort((a, b) => a.family.localeCompare(b.family)); // Sort families alphabetically
+
+      console.log("Grouped fonts by family:", groupedFonts.length, "families");
+      return groupedFonts;
     } catch (error) {
       console.error("Error loading fonts:", error);
       return [];

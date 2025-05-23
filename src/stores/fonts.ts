@@ -3,7 +3,7 @@ import { pluginApi } from "@/api";
 
 interface Font {
   family: string;
-  style: string;
+  styles: string[];
 }
 
 interface Variable {

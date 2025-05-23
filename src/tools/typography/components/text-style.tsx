@@ -45,7 +45,7 @@ import { useFontsStore, useVariablesStore } from "../../../stores/fonts";
 
 interface Font {
   family: string;
-  style: string;
+  styles: string[];
 }
 
 interface Variable {
@@ -65,18 +65,6 @@ interface TextStyleProps {
   onDelete?: () => void;
   mode: "add" | "edit";
 }
-
-const WEIGHT_OPTIONS = [
-  { value: "100", label: "Thin (100)" },
-  { value: "200", label: "Extra Light (200)" },
-  { value: "300", label: "Light (300)" },
-  { value: "400", label: "Regular (400)" },
-  { value: "500", label: "Medium (500)" },
-  { value: "600", label: "Semi Bold (600)" },
-  { value: "700", label: "Bold (700)" },
-  { value: "800", label: "Extra Bold (800)" },
-  { value: "900", label: "Black (900)" },
-];
 
 const RATIO_OPTIONS = [
   { value: "1.067", label: "Minor Second (1.067)" },
@@ -104,17 +92,18 @@ export function TextStyle({
   const { fonts, isLoading: fontsLoading } = useFontsStore();
   const { variables, isLoading: variablesLoading } = useVariablesStore();
 
-  // Form state - default to all weights selected
+  // Form state
   const [styleName, setStyleName] = React.useState("Untitled style");
   const [fontSource, setFontSource] = React.useState("type"); // "type" or "variable"
-  const [selectedWeights, setSelectedWeights] = React.useState<string[]>(
-    WEIGHT_OPTIONS.map((w) => w.value) // Select all weights by default
-  );
-  const [includeItalics, setIncludeItalics] = React.useState(false);
+  const [selectedFontFamily, setSelectedFontFamily] =
+    React.useState<string>("");
+  const [selectedStyles, setSelectedStyles] = React.useState<string[]>([]);
   const [selectedRatio, setSelectedRatio] = React.useState("1.2"); // Default to Minor Third
+  const [lineHeight, setLineHeight] = React.useState("1.4");
+  const [letterSpacing, setLetterSpacing] = React.useState("0");
   const [isManualScale, setIsManualScale] = React.useState(false);
   const [manualSizes, setManualSizes] = React.useState<SizeEntry[]>([
-    { id: "1", name: "size-1", size: 10 },
+    { id: "1", name: "size-1", size: 10, lineHeight: 1.4, letterSpacing: 0 },
   ]);
 
   // Variables state
@@ -124,23 +113,39 @@ export function TextStyle({
     React.useState<Variable | null>(null);
 
   // Initialize value based on current font
-  const initialValue = currentFont
-    ? `${currentFont.family.trim()} - ${currentFont.style.trim()}`
-    : "";
+  const initialValue = currentFont ? currentFont.family.trim() : "";
   const [value, setValue] = React.useState(initialValue);
+
+  // Get available styles for the selected font family
+  const availableStyles = React.useMemo(() => {
+    if (!selectedFontFamily) return [];
+    const selectedFont = fonts.find(
+      (font) => font.family === selectedFontFamily
+    );
+    return selectedFont?.styles || [];
+  }, [selectedFontFamily, fonts]);
+
+  // Update selected styles when font family changes
+  React.useEffect(() => {
+    if (selectedFontFamily && availableStyles.length > 0) {
+      // Auto-select all available styles
+      setSelectedStyles(availableStyles);
+    } else {
+      setSelectedStyles([]);
+    }
+  }, [selectedFontFamily, availableStyles]);
 
   // Update value when currentFont prop changes
   React.useEffect(() => {
     if (currentFont) {
-      const newValue = `${currentFont.family.trim()} - ${currentFont.style.trim()}`;
+      const newValue = currentFont.family.trim();
       setValue(newValue);
+      setSelectedFontFamily(newValue);
       console.log("Setting value from currentFont:", newValue);
       console.log("Available fonts count:", fonts.length);
 
       // Check if this font exists in the fonts array
-      const fontExists = fonts.some(
-        (font) => `${font.family.trim()} - ${font.style.trim()}` === newValue
-      );
+      const fontExists = fonts.some((font) => font.family.trim() === newValue);
       console.log("Font exists in fonts array:", fontExists);
     }
   }, [currentFont, fonts]);
@@ -153,49 +158,50 @@ export function TextStyle({
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = fonts.filter(
-      (font) =>
-        font.family.toLowerCase().includes(query) ||
-        font.style.toLowerCase().includes(query)
+    const filtered = fonts.filter((font) =>
+      font.family.toLowerCase().includes(query)
     );
 
     // Limit filtered results to 100 for performance
     return filtered.slice(0, 100);
   }, [searchQuery, fonts]);
 
-  // Multi-select for weights
-  const [weightsOpen, setWeightsOpen] = React.useState(false);
+  // Multi-select for styles
+  const [stylesOpen, setStylesOpen] = React.useState(false);
 
-  const getWeightsDisplayText = () => {
-    if (selectedWeights.length === 0) return "Select weights...";
-    if (selectedWeights.length === WEIGHT_OPTIONS.length) return "All weights";
-    if (selectedWeights.length === 1) {
-      const weight = WEIGHT_OPTIONS.find((w) => w.value === selectedWeights[0]);
-      return weight?.label || selectedWeights[0];
+  const getStylesDisplayText = () => {
+    if (selectedStyles.length === 0) return "Select styles...";
+    if (
+      selectedStyles.length === availableStyles.length &&
+      availableStyles.length > 0
+    )
+      return "All styles";
+    if (selectedStyles.length === 1) {
+      return selectedStyles[0];
     }
-    return `${selectedWeights.length} weights selected`;
+    return `${selectedStyles.length} styles selected`;
   };
 
-  const handleWeightToggle = (weightValue: string) => {
-    setSelectedWeights((prev) =>
-      prev.includes(weightValue)
-        ? prev.filter((w) => w !== weightValue)
-        : [...prev, weightValue]
+  const handleStyleToggle = (styleValue: string) => {
+    setSelectedStyles((prev) =>
+      prev.includes(styleValue)
+        ? prev.filter((s) => s !== styleValue)
+        : [...prev, styleValue]
     );
   };
 
-  const handleToggleAllWeights = () => {
-    if (selectedWeights.length === WEIGHT_OPTIONS.length) {
+  const handleToggleAllStyles = () => {
+    if (selectedStyles.length === availableStyles.length) {
       // All are selected, so clear them
-      setSelectedWeights([]);
+      setSelectedStyles([]);
     } else {
       // Not all are selected, so select all
-      setSelectedWeights(WEIGHT_OPTIONS.map((w) => w.value));
+      setSelectedStyles([...availableStyles]);
     }
   };
 
-  const getAllClearButtonText = () => {
-    return selectedWeights.length === WEIGHT_OPTIONS.length ? "Clear" : "All";
+  const getAllClearStylesButtonText = () => {
+    return selectedStyles.length === availableStyles.length ? "Clear" : "All";
   };
 
   // Single-select for ratio
@@ -214,13 +220,13 @@ export function TextStyle({
   const handleSelect = (currentValue: string) => {
     const trimmedValue = currentValue.trim();
     setValue(trimmedValue);
+    setSelectedFontFamily(trimmedValue);
     setOpen(false);
     setSearchQuery(""); // Reset search when selecting
 
-    const [family, style] = trimmedValue.split(" - ");
     const styleData = {
-      name: styleName || `Style ${family}`,
-      fontName: { family: family.trim(), style: style.trim() },
+      name: styleName || `Style ${trimmedValue}`,
+      fontName: { family: trimmedValue, style: currentFont?.style || "" },
     };
 
     if (onChange) {
@@ -424,12 +430,14 @@ export function TextStyle({
                             </CommandEmpty>
                             <CommandGroup>
                               {filteredFonts.map((font, index) => {
-                                const fontValue = `${font.family.trim()} - ${font.style.trim()}`;
+                                const fontValue = font.family.trim();
                                 const isSelected = value?.trim() === fontValue;
 
                                 return (
                                   <CommandItem
-                                    key={`${font.family}-${font.style}`}
+                                    key={`${font.family}-${font.styles.join(
+                                      ","
+                                    )}`}
                                     value={fontValue}
                                     onSelect={handleSelect}
                                     className={cn("cursor-default")}
@@ -439,9 +447,7 @@ export function TextStyle({
                                         <Check className="w-4 h-4 text-foreground" />
                                       )}
                                     </div>
-                                    <span>
-                                      {font.family.trim()} - {font.style.trim()}
-                                    </span>
+                                    <span>{font.family.trim()}</span>
                                   </CommandItem>
                                 );
                               })}
@@ -562,18 +568,56 @@ export function TextStyle({
             </FormField>
 
             {/* 2-column grid for other options */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Font Weights Multi-Select */}
-              <FormField label="Weights">
-                <Popover open={weightsOpen} onOpenChange={setWeightsOpen}>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 items-end">
+              {/* Line Height */}
+              <FormField label="Line Height">
+                <Input
+                  type="text"
+                  placeholder="1.4"
+                  value={lineHeight}
+                  onChange={(e) => setLineHeight(e.target.value)}
+                  className="w-full"
+                />
+              </FormField>
+
+              {/* Letter Spacing */}
+              <FormField label="Letter Spacing">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="0"
+                    value={letterSpacing}
+                    onChange={(e) => setLetterSpacing(e.target.value)}
+                    className="pr-8"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </FormField>
+
+              {/* Font Styles Multi-Select */}
+              <FormField label="Styles">
+                <Popover open={stylesOpen} onOpenChange={setStylesOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={weightsOpen}
-                      className="justify-between w-full cursor-default"
+                      aria-expanded={stylesOpen}
+                      disabled={
+                        !selectedFontFamily || availableStyles.length === 0
+                      }
+                      className={cn(
+                        "justify-between w-full cursor-default",
+                        (!selectedFontFamily || availableStyles.length === 0) &&
+                          "opacity-50"
+                      )}
                     >
-                      {getWeightsDisplayText()}
+                      {!selectedFontFamily
+                        ? "Select font family first..."
+                        : availableStyles.length === 0
+                        ? "No styles available"
+                        : getStylesDisplayText()}
                       <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
                     </Button>
                   </PopoverTrigger>
@@ -581,38 +625,36 @@ export function TextStyle({
                     <Command>
                       <div className="flex items-center justify-between p-2 border-b">
                         <span className="text-sm font-medium">
-                          Select Weights
+                          Select Styles
                         </span>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-6 px-2 text-xs cursor-default"
-                            onClick={handleToggleAllWeights}
+                            onClick={handleToggleAllStyles}
                           >
-                            {getAllClearButtonText()}
+                            {getAllClearStylesButtonText()}
                           </Button>
                         </div>
                       </div>
                       <CommandList className="max-h-[200px] overflow-auto">
                         <CommandGroup>
-                          {WEIGHT_OPTIONS.map((weight) => (
+                          {availableStyles.map((style) => (
                             <CommandItem
-                              key={weight.value}
-                              onSelect={() => handleWeightToggle(weight.value)}
+                              key={style}
+                              onSelect={() => handleStyleToggle(style)}
                               className="cursor-default"
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  selectedWeights.includes(weight.value)
+                                  selectedStyles.includes(style)
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
                               />
-                              <span style={{ fontWeight: weight.value }}>
-                                {weight.label}
-                              </span>
+                              <span>{style}</span>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -630,7 +672,11 @@ export function TextStyle({
                       variant="outline"
                       role="combobox"
                       aria-expanded={ratioOpen}
-                      className="justify-between w-full cursor-default"
+                      disabled={isManualScale}
+                      className={cn(
+                        "justify-between w-full cursor-default",
+                        isManualScale && "opacity-50"
+                      )}
                     >
                       {getRatioDisplayText()}
                       <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
@@ -664,34 +710,34 @@ export function TextStyle({
                 </Popover>
               </FormField>
 
-              {/* Include Italics */}
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="include-italics"
-                  checked={includeItalics}
-                  onCheckedChange={setIncludeItalics}
-                />
-                <Label htmlFor="include-italics">Include Italics</Label>
+              {/* Manual Scale Toggle */}
+              <div className="flex items-center gap-2 col-span-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase">
+                  OR
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsManualScale(!isManualScale)}
+                  className={cn(
+                    "h-10 px-3 cursor-default",
+                    isManualScale &&
+                      "bg-foreground text-background hover:bg-foreground/90"
+                  )}
+                >
+                  Manual Scale
+                </Button>
               </div>
-
-              {/* Empty space for grid balance */}
-              <div></div>
-            </div>
-
-            {/* Manual Scale Toggle - Full width below grid */}
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="manual-scale"
-                checked={isManualScale}
-                onCheckedChange={setIsManualScale}
-              />
-              <Label htmlFor="manual-scale">Manual Scale</Label>
             </div>
           </div>
 
           {/* Manual Sizes Section */}
           {isManualScale && (
-            <ManualSizes sizes={manualSizes} onSizesChange={setManualSizes} />
+            <ManualSizes
+              sizes={manualSizes}
+              onSizesChange={setManualSizes}
+              defaultRatio={parseFloat(selectedRatio)}
+            />
           )}
         </>
       )}

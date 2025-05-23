@@ -1,7 +1,7 @@
 figma.showUI(__html__, {
   themeColors: true,
-  width: 800,
-  height: 600,
+  width: 720,
+  height: 540,
 });
 
 import * as api from "./api";
