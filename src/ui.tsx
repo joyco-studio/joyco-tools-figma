@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import "./ui.css";
+import "./styles/globals.css";
 import { pluginApi } from "./api";
+import { Button } from "./components/ui/button";
 
 declare function require(path: string): any;
 
@@ -20,33 +21,25 @@ function App() {
 
   return (
     <main className="bg-white h-[100vh] flex flex-col justify-center items-center w-full">
-      <header className="flex flex-col justify-center items-center mb-4">
+      <header className="flex flex-col items-center justify-center mb-4">
         <img src={require("./logo.svg")} />
         <h2 className="text-2xl">Rectangle Creator</h2>
       </header>
-      <section className="flex flex-row justify-center items-center space-x-2  mb-4">
+      <section className="flex flex-row items-center justify-center mb-4 space-x-2">
         <label htmlFor="input">Count</label>
         <input
-          className="border border-neutral-100 rounded-md p-2"
+          className="p-2 border rounded-md border-neutral-100"
           id="input"
           type="number"
           min="0"
           ref={inputRef}
         />
       </section>
-      <footer className="flex flex-row justify-center items-center space-x-2">
-        <button
-          className="bg-blue-500 text-white rounded-md py-2 px-3"
-          onClick={onCreate}
-        >
-          Create
-        </button>
-        <button
-          className="border border-neutral-300 rounded-md py-2 px-3"
-          onClick={onCancel}
-        >
+      <footer className="flex flex-row items-center justify-center space-x-2">
+        <Button onClick={onCreate}>Create</Button>
+        <Button variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </footer>
     </main>
   );

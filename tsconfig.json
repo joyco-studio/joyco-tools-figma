@@ -3,6 +3,10 @@
     "target": "es6",
     "jsx": "react",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    // "paths": {
+    //   "@/*": ["./src/*"]
+    // },
     "typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
