@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import { JoycoLogo } from "../icons/joyco-logo";
 
 // Menu items.
@@ -49,15 +50,15 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <div>
-                <div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-sidebar-primary text-sidebar-primary-foreground">
-                  <JoycoLogo className="size-5" />
+                <div className="flex items-center justify-center mr-1 rounded-lg aspect-square size-8 bg-sidebar-primary text-sidebar-primary-foreground">
+                  <JoycoLogo className="size-8" />
                 </div>
-                <div className="grid flex-1 text-sm leading-tight text-left">
-                  <span className="font-semibold truncate text-sidebar-foreground">
+                <div className="grid flex-1 leading-tight text-left">
+                  <span className="text-base font-semibold uppercase truncate text-sidebar-foreground">
                     Joyco Toolbox
                   </span>
-                  <span className="text-xs truncate text-sidebar-foreground/70">
-                    Design System Tools
+                  <span className="text-xs uppercase truncate text-sidebar-foreground/70">
+                    Design for rebels
                   </span>
                 </div>
               </div>
