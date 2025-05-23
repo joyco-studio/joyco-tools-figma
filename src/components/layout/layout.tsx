@@ -22,7 +22,7 @@ function Container({ children }: LayoutProps) {
 
 function Sidebar({ children }: SidebarProps) {
   return (
-    <aside className="w-64 border-r border-border bg-muted/40">
+    <aside className="w-48 border-r border-border bg-muted/40">
       {children}
     </aside>
   );

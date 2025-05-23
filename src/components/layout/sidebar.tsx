@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import * as React from "react";
 
 interface SidebarItem {
@@ -19,11 +20,12 @@ export function Sidebar({ items, activeItem, onItemClick }: SidebarProps) {
         <button
           key={item.id}
           onClick={() => onItemClick(item.id)}
-          className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeItem === item.id
+          className={cn(
+            "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            item.id === activeItem
               ? "bg-primary text-primary-foreground"
               : "hover:bg-muted"
-          }`}
+          )}
         >
           {item.icon && <span className="w-4 h-4">{item.icon}</span>}
           <span className="text-sm">{item.label}</span>

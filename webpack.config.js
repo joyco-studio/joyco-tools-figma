@@ -43,7 +43,12 @@ module.exports = (env, argv) => ({
   },
 
   // Webpack tries these extensions for you if you omit the extension like "import './file'"
-  resolve: { extensions: [".tsx", ".ts", ".jsx", ".js"] },
+  resolve: {
+    extensions: [".tsx", ".ts", ".jsx", ".js"],
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
 
   output: {
     filename: "[name].js",

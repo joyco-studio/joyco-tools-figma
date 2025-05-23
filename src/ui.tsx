@@ -5,8 +5,15 @@ import { pluginApi } from "./api";
 import { Layout } from "./components/layout/layout";
 import { Sidebar } from "./components/layout/sidebar";
 import { RectangleCreator } from "./tools/rectangle-creator";
+import { Typography } from "./tools/typography";
+import { TypeIcon } from "lucide-react";
 
 const tools = [
+  {
+    id: "typography",
+    label: "Typography",
+    icon: <TypeIcon className="w-4 h-4" />,
+  },
   {
     id: "rectangle-creator",
     label: "Rectangle Creator",
@@ -19,6 +26,8 @@ function App() {
 
   const renderTool = () => {
     switch (activeTool) {
+      case "typography":
+        return <Typography />;
       case "rectangle-creator":
         return <RectangleCreator />;
       default:
