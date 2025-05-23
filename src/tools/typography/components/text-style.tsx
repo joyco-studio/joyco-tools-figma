@@ -111,7 +111,7 @@ export function TextStyle({
     WEIGHT_OPTIONS.map((w) => w.value) // Select all weights by default
   );
   const [includeItalics, setIncludeItalics] = React.useState(false);
-  const [selectedRatios, setSelectedRatios] = React.useState<string[]>(["1.2"]); // Default to Minor Third
+  const [selectedRatio, setSelectedRatio] = React.useState("1.2"); // Default to Minor Third
   const [isManualScale, setIsManualScale] = React.useState(false);
   const [manualSizes, setManualSizes] = React.useState<SizeEntry[]>([
     { id: "1", name: "size-1", size: 10 },
@@ -198,39 +198,17 @@ export function TextStyle({
     return selectedWeights.length === WEIGHT_OPTIONS.length ? "Clear" : "All";
   };
 
-  // Multi-select for ratios
-  const [ratiosOpen, setRatiosOpen] = React.useState(false);
+  // Single-select for ratio
+  const [ratioOpen, setRatioOpen] = React.useState(false);
 
-  const getRatiosDisplayText = () => {
-    if (selectedRatios.length === 0) return "Select ratios...";
-    if (selectedRatios.length === RATIO_OPTIONS.length) return "All ratios";
-    if (selectedRatios.length === 1) {
-      const ratio = RATIO_OPTIONS.find((r) => r.value === selectedRatios[0]);
-      return ratio?.label || selectedRatios[0];
-    }
-    return `${selectedRatios.length} ratios selected`;
+  const getRatioDisplayText = () => {
+    const ratio = RATIO_OPTIONS.find((r) => r.value === selectedRatio);
+    return ratio?.label || "Select ratio...";
   };
 
-  const handleRatioToggle = (ratioValue: string) => {
-    setSelectedRatios((prev) =>
-      prev.includes(ratioValue)
-        ? prev.filter((r) => r !== ratioValue)
-        : [...prev, ratioValue]
-    );
-  };
-
-  const handleToggleAllRatios = () => {
-    if (selectedRatios.length === RATIO_OPTIONS.length) {
-      // All are selected, so clear them
-      setSelectedRatios([]);
-    } else {
-      // Not all are selected, so select all
-      setSelectedRatios(RATIO_OPTIONS.map((r) => r.value));
-    }
-  };
-
-  const getAllClearRatiosButtonText = () => {
-    return selectedRatios.length === RATIO_OPTIONS.length ? "Clear" : "All";
+  const handleRatioSelect = (ratioValue: string) => {
+    setSelectedRatio(ratioValue);
+    setRatioOpen(false);
   };
 
   const handleSelect = (currentValue: string) => {
@@ -298,6 +276,25 @@ export function TextStyle({
 
     // TODO: Handle variable selection for typography
     console.log("Selected variable:", variable);
+  };
+
+  // Helper function to render variable name with dimmed path
+  const renderVariableName = (name: string) => {
+    const lastSlashIndex = name.lastIndexOf("/");
+    if (lastSlashIndex === -1) {
+      // No slash found, return the name as is
+      return <span className="font-medium">{name}</span>;
+    }
+
+    const path = name.substring(0, lastSlashIndex + 1); // Include the slash
+    const actualName = name.substring(lastSlashIndex + 1);
+
+    return (
+      <span className="font-medium">
+        <span className="opacity-50">{path}</span>
+        <span>{actualName}</span>
+      </span>
+    );
   };
 
   return (
@@ -482,9 +479,7 @@ export function TextStyle({
                               "Loading variables..."
                             ) : selectedVariable ? (
                               <>
-                                <span className="truncate">
-                                  {selectedVariable.name}
-                                </span>
+                                {renderVariableName(selectedVariable.name)}
                                 <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
                                   {selectedVariable.resolvedType}
                                 </span>
@@ -535,9 +530,7 @@ export function TextStyle({
                                     </div>
                                     <div className="flex flex-col flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
-                                        <span className="font-medium">
-                                          {variable.name}
-                                        </span>
+                                        {renderVariableName(variable.name)}
                                         <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground">
                                           {variable.resolvedType}
                                         </span>
@@ -629,49 +622,34 @@ export function TextStyle({
                 </Popover>
               </FormField>
 
-              {/* Scale Ratios Multi-Select */}
-              <FormField label="Scale Ratios">
-                <Popover open={ratiosOpen} onOpenChange={setRatiosOpen}>
+              {/* Scale Ratio Single-Select */}
+              <FormField label="Scale Ratio">
+                <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={ratiosOpen}
+                      aria-expanded={ratioOpen}
                       className="justify-between w-full cursor-default"
                     >
-                      {getRatiosDisplayText()}
+                      {getRatioDisplayText()}
                       <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
-                      <div className="flex items-center justify-between p-2 border-b">
-                        <span className="text-sm font-medium">
-                          Select Ratios
-                        </span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs cursor-default"
-                            onClick={handleToggleAllRatios}
-                          >
-                            {getAllClearRatiosButtonText()}
-                          </Button>
-                        </div>
-                      </div>
                       <CommandList className="max-h-[200px] overflow-auto">
                         <CommandGroup>
                           {RATIO_OPTIONS.map((ratio) => (
                             <CommandItem
                               key={ratio.value}
-                              onSelect={() => handleRatioToggle(ratio.value)}
+                              onSelect={() => handleRatioSelect(ratio.value)}
                               className="cursor-default"
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  selectedRatios.includes(ratio.value)
+                                  selectedRatio === ratio.value
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
