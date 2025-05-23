@@ -1,6 +1,10 @@
-figma.showUI(__html__, { themeColors: true, height: 300 });
+figma.showUI(__html__, {
+  themeColors: true,
+  width: 800,
+  height: 600,
+});
 
-import * as api from './api'
+import * as api from "./api";
 
 figma.on("selectionchange", () => {
   api.uiApi.selectionChanged(figma.currentPage.selection);

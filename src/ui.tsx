@@ -1,48 +1,44 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
 import { pluginApi } from "./api";
-import { Button } from "./components/ui/button";
+import { Layout } from "./components/layout/layout";
+import { Sidebar } from "./components/layout/sidebar";
+import { RectangleCreator } from "./tools/rectangle-creator";
 
-declare function require(path: string): any;
+const tools = [
+  {
+    id: "rectangle-creator",
+    label: "Rectangle Creator",
+  },
+  // Add more tools here as we create them
+];
 
 function App() {
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [activeTool, setActiveTool] = React.useState(tools[0].id);
 
-  const onCreate = () => {
-    const count = Number(inputRef.current?.value || 0);
-    pluginApi.createRectangle(count);
-    pluginApi.notify(`Added ${count} rectangles`);
-  };
-
-  const onCancel = () => {
-    pluginApi.exit();
+  const renderTool = () => {
+    switch (activeTool) {
+      case "rectangle-creator":
+        return <RectangleCreator />;
+      default:
+        return <div>Select a tool</div>;
+    }
   };
 
   return (
-    <main className="bg-white h-[100vh] flex flex-col justify-center items-center w-full">
-      <header className="flex flex-col items-center justify-center mb-4">
-        <img src={require("./logo.svg")} />
-        <h2 className="text-2xl">Rectangle Creator</h2>
-      </header>
-      <section className="flex flex-row items-center justify-center mb-4 space-x-2">
-        <label htmlFor="input">Count</label>
-        <input
-          className="p-2 border rounded-md border-neutral-100"
-          id="input"
-          type="number"
-          min="0"
-          ref={inputRef}
+    <Layout.Container>
+      <Layout.Sidebar>
+        <Sidebar
+          items={tools}
+          activeItem={activeTool}
+          onItemClick={setActiveTool}
         />
-      </section>
-      <footer className="flex flex-row items-center justify-center space-x-2">
-        <Button onClick={onCreate}>Create</Button>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-      </footer>
-    </main>
+      </Layout.Sidebar>
+      <Layout.Content>{renderTool()}</Layout.Content>
+    </Layout.Container>
   );
 }
 
-ReactDOM.render(<App />, document.getElementById("react-page"));
+const root = createRoot(document.getElementById("react-page")!);
+root.render(<App />);
