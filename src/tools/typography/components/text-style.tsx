@@ -35,6 +35,7 @@ import {
   Type,
   Pencil,
   Trash2,
+  Hexagon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AutoResizeInput } from "./auto-resize-input";
@@ -95,6 +96,7 @@ export function TextStyle({
 
   // Form state - default to all weights selected
   const [styleName, setStyleName] = React.useState("Untitled style");
+  const [fontSource, setFontSource] = React.useState("type"); // "type" or "variable"
   const [selectedWeights, setSelectedWeights] = React.useState<string[]>(
     WEIGHT_OPTIONS.map((w) => w.value) // Select all weights by default
   );
@@ -290,77 +292,108 @@ export function TextStyle({
       {/* Collapsible content */}
       {isExpanded && (
         <>
-          <div className="p-4">
-            {/* 2-column grid layout */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Font Family */}
-              <div className="space-y-2">
-                <Label>Font Family</Label>
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={open}
-                      className="justify-between w-full"
-                      disabled={fontsLoading}
+          <div className="flex flex-col gap-6 px-4 py-6">
+            {/* Font Source & Family - Full Width Row */}
+            <div className="flex flex-col gap-4">
+              <Label>Font Family</Label>
+              <div className="flex gap-4">
+                {/* Font Source Toggle */}
+                <div className="space-y-2">
+                  <ToggleGroup
+                    type="single"
+                    value={fontSource}
+                    onValueChange={(value) =>
+                      value && setFontSource(value as string)
+                    }
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem value="type" className="gap-2">
+                      <Type className="size-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="variable"
+                      className="gap-2"
+                      disabled
                     >
-                      {fontsLoading
-                        ? "Loading fonts..."
-                        : value
-                        ? value
-                        : "Select font..."}
-                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder="Search font..."
-                        value={searchQuery}
-                        onValueChange={setSearchQuery}
-                      />
-                      <CommandList className="max-h-[300px] overflow-auto">
-                        <CommandEmpty>
-                          {searchQuery
-                            ? "No matching fonts found."
-                            : "No fonts available."}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {filteredFonts.map((font, index) => {
-                            const fontValue = `${font.family.trim()} - ${font.style.trim()}`;
-                            const isSelected = value?.trim() === fontValue;
+                      <Hexagon className="size-4" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
 
-                            return (
-                              <CommandItem
-                                key={`${font.family}-${font.style}`}
-                                value={fontValue}
-                                onSelect={handleSelect}
-                                className={cn("cursor-pointer")}
-                              >
-                                <div className="flex items-center w-4 mr-2">
-                                  {isSelected && (
-                                    <Check className="w-4 h-4 text-foreground" />
-                                  )}
+                {/* Font Family - Only show when type is selected */}
+                {fontSource === "type" && (
+                  <div className="flex-1 space-y-2">
+                    <Popover open={open} onOpenChange={setOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={open}
+                          className="justify-between w-full"
+                          disabled={fontsLoading}
+                        >
+                          {fontsLoading
+                            ? "Loading fonts..."
+                            : value
+                            ? value
+                            : "Select font..."}
+                          <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Search font..."
+                            value={searchQuery}
+                            onValueChange={setSearchQuery}
+                          />
+                          <CommandList className="max-h-[300px] overflow-auto">
+                            <CommandEmpty>
+                              {searchQuery
+                                ? "No matching fonts found."
+                                : "No fonts available."}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {filteredFonts.map((font, index) => {
+                                const fontValue = `${font.family.trim()} - ${font.style.trim()}`;
+                                const isSelected = value?.trim() === fontValue;
+
+                                return (
+                                  <CommandItem
+                                    key={`${font.family}-${font.style}`}
+                                    value={fontValue}
+                                    onSelect={handleSelect}
+                                    className={cn("cursor-pointer")}
+                                  >
+                                    <div className="flex items-center w-4 mr-2">
+                                      {isSelected && (
+                                        <Check className="w-4 h-4 text-foreground" />
+                                      )}
+                                    </div>
+                                    <span>
+                                      {font.family.trim()} - {font.style.trim()}
+                                    </span>
+                                  </CommandItem>
+                                );
+                              })}
+                              {!searchQuery && fonts.length > 100 && (
+                                <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
+                                  Showing first 100 fonts. Use search to find
+                                  more.
                                 </div>
-                                <span>
-                                  {font.family.trim()} - {font.style.trim()}
-                                </span>
-                              </CommandItem>
-                            );
-                          })}
-                          {!searchQuery && fonts.length > 100 && (
-                            <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
-                              Showing first 100 fonts. Use search to find more.
-                            </div>
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                              )}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
               </div>
+            </div>
 
+            {/* 2-column grid for other options */}
+            <div className="grid grid-cols-2 gap-4">
               {/* Font Weights Multi-Select */}
               <div className="space-y-2">
                 <Label>Font Weights</Label>
@@ -447,10 +480,13 @@ export function TextStyle({
                 />
                 <Label htmlFor="include-italics">Include Italics</Label>
               </div>
+
+              {/* Empty space for grid balance */}
+              <div></div>
             </div>
 
             {/* Manual Scale Toggle - Full width below grid */}
-            <div className="flex items-center mt-4 space-x-2">
+            <div className="flex items-center space-x-2">
               <Switch
                 id="manual-scale"
                 checked={isManualScale}
