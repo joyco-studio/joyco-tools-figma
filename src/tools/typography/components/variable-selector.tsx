@@ -24,6 +24,7 @@ interface Variable {
   resolvedType: string;
   description?: string;
   collectionName?: string;
+  resolvedValue?: string | number;
 }
 
 interface VariableSelectorProps {

@@ -23,6 +23,7 @@ interface Variable {
   resolvedType: string;
   description?: string;
   collectionName?: string;
+  resolvedValue?: string | number;
 }
 
 interface ManualSizesProps {
@@ -103,7 +104,7 @@ export function ManualSizes({
             {sizes.map((sizeEntry) => (
               <div
                 key={sizeEntry.id}
-                className="space-y-4 p-4 border rounded-lg border-border"
+                className="p-4 space-y-4 border rounded-lg border-border"
               >
                 {/* Name Field - Full Width */}
                 <FormField label="Name">
@@ -143,9 +144,9 @@ export function ManualSizes({
                         />
                         {/* Variable display overlay */}
                         {sizeEntry.sizeVariable && (
-                          <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="truncate text-sm font-medium text-foreground">
+                          <div className="absolute inset-[2px] flex items-center px-3 pointer-events-none bg-background rounded-sm">
+                            <div className="flex items-center flex-1 min-w-0 gap-2">
+                              <span className="text-sm font-medium truncate text-foreground">
                                 {sizeEntry.sizeVariable.name}
                               </span>
                               <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
@@ -177,7 +178,7 @@ export function ManualSizes({
                           updateManualSize(sizeEntry.id, "sizeVariable", null)
                         }
                         allowedTypes={["FLOAT"]}
-                        className="rounded-l-none border-l-0"
+                        className="border-l-0 rounded-l-none"
                         width={300}
                       />
                     </div>
@@ -222,7 +223,7 @@ export function ManualSizes({
                   </FormField>
 
                   {/* Delete Button - Spans both columns */}
-                  <div className="col-span-2 flex justify-end">
+                  <div className="flex justify-end col-span-2">
                     {sizes.length > 1 && (
                       <Button
                         variant="outline"

@@ -74,14 +74,30 @@ export const pluginApi = createPluginAPI({
         typographyVariables
       );
 
-      // Map variables to our interface with collection names
+      // Map variables to our interface with collection names and resolved values
       const variablesWithCollections = typographyVariables.map((variable) => {
         const collection = collections.find(
           (col) => col.id === variable.variableCollectionId
         );
+
+        // Get the resolved value for STRING variables
+        let resolvedValue: string | number | undefined = undefined;
+        if (
+          variable.resolvedType === "STRING" ||
+          variable.resolvedType === "FLOAT"
+        ) {
+          const modeIds = Object.keys(variable.valuesByMode);
+          if (modeIds.length > 0) {
+            const modeId = modeIds[0]; // Use the first mode
+            resolvedValue = variable.valuesByMode[modeId] as string | number;
+          }
+        }
+
         console.log(
           `🏷️ Variable "${variable.name}" belongs to collection:`,
-          collection?.name
+          collection?.name,
+          "resolved value:",
+          resolvedValue
         );
         return {
           id: variable.id,
@@ -89,6 +105,7 @@ export const pluginApi = createPluginAPI({
           resolvedType: variable.resolvedType,
           description: variable.description,
           collectionName: collection?.name || "Unknown Collection",
+          resolvedValue: resolvedValue,
         };
       });
 

@@ -52,6 +52,7 @@ interface Variable {
   resolvedType: string;
   description?: string;
   collectionName?: string;
+  resolvedValue?: string | number;
 }
 
 interface TextStyleProps {
@@ -82,6 +83,28 @@ const RATIO_OPTIONS = [
   { value: "1.5", label: "Perfect Fifth (1.5)" },
   { value: "1.618", label: "Golden Ratio (1.618)" },
   { value: "2.0", label: "Octave (2.0)" },
+];
+
+// Standard fallback weights when no font match is found
+const FALLBACK_WEIGHTS = [
+  "Thin",
+  "Extra Light",
+  "Light",
+  "Regular",
+  "Medium",
+  "Semi Bold",
+  "Bold",
+  "Extra Bold",
+  "Black",
+  "Thin Italic",
+  "Extra Light Italic",
+  "Light Italic",
+  "Italic",
+  "Medium Italic",
+  "Semi Bold Italic",
+  "Bold Italic",
+  "Extra Bold Italic",
+  "Black Italic",
 ];
 
 // Helper function to get human-readable type
@@ -155,14 +178,71 @@ export function TextStyle({
   const initialValue = currentFont ? currentFont.family.trim() : "";
   const [value, setValue] = React.useState(initialValue);
 
-  // Get available styles for the selected font family
+  // Get available styles for the selected font family or variable
   const availableStyles = React.useMemo(() => {
-    if (!selectedFontFamily) return [];
-    const selectedFont = fonts.find(
-      (font) => font.family === selectedFontFamily
-    );
-    return selectedFont?.styles || [];
-  }, [selectedFontFamily, fonts]);
+    if (fontSource === "type" && selectedFontFamily) {
+      // Standard font family selection
+      const selectedFont = fonts.find(
+        (font) => font.family === selectedFontFamily
+      );
+      return selectedFont?.styles || [];
+    } else if (fontSource === "variable" && selectedVariable) {
+      // Variable selection - try to match the variable's resolved value to a font family
+      console.log("🔍 Debugging variable matching:");
+      console.log("Selected variable:", selectedVariable);
+      console.log(
+        "Available fonts:",
+        fonts.map((f) => f.family)
+      );
+
+      // Use the resolved value if available, otherwise fall back to name parsing
+      let primaryCandidate: string | null = null;
+
+      if (
+        selectedVariable.resolvedValue &&
+        typeof selectedVariable.resolvedValue === "string"
+      ) {
+        primaryCandidate = selectedVariable.resolvedValue;
+        console.log("✅ Using resolved value:", primaryCandidate);
+      } else {
+        console.log("⚠️ No resolved value available, parsing name");
+        // Fallback to parsing the variable name
+        const nameParts = selectedVariable.name.split("/");
+        primaryCandidate = nameParts[nameParts.length - 1];
+      }
+
+      // Try to find exact match first
+      let matchingFont = fonts.find((font) => font.family === primaryCandidate);
+
+      if (matchingFont) {
+        console.log(
+          `✅ Found exact match for "${primaryCandidate}":`,
+          matchingFont
+        );
+        return matchingFont.styles;
+      }
+
+      // Try case-insensitive match
+      matchingFont = fonts.find(
+        (font) => font.family.toLowerCase() === primaryCandidate?.toLowerCase()
+      );
+
+      if (matchingFont) {
+        console.log(
+          `✅ Found case-insensitive match for "${primaryCandidate}":`,
+          matchingFont
+        );
+        return matchingFont.styles;
+      }
+
+      // No match found, use fallback weights
+      console.log(
+        `❌ No matching font found for "${primaryCandidate}", using fallback weights`
+      );
+      return FALLBACK_WEIGHTS;
+    }
+    return [];
+  }, [selectedFontFamily, selectedVariable, fontSource, fonts]);
 
   // Update selected styles when font family changes
   React.useEffect(() => {
@@ -373,8 +453,11 @@ export function TextStyle({
       newErrors.fontFamily = "Variable selection is required";
     }
 
-    // Styles validation (only for type mode)
-    if (fontSource === "type" && selectedStyles.length === 0) {
+    // Styles validation (for both type and variable modes)
+    if (
+      (fontSource === "type" || fontSource === "variable") &&
+      selectedStyles.length === 0
+    ) {
       newErrors.styles = "At least one style must be selected";
     }
 
@@ -653,13 +736,13 @@ export function TextStyle({
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="justify-between w-full cursor-default rounded-r-none border-r"
+                        className="justify-between w-full border-r rounded-r-none cursor-default"
                         disabled={fontsLoading}
                       >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="flex items-center flex-1 min-w-0 gap-2">
                           {selectedVariable ? (
                             <>
-                              <span className="truncate text-sm font-medium">
+                              <span className="text-sm font-medium truncate">
                                 {selectedVariable.name}
                               </span>
                               <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
@@ -731,13 +814,13 @@ export function TextStyle({
                   onVariableSelect={handleVariableSelect}
                   onUnlink={handleVariableUnlink}
                   allowedTypes={["STRING"]}
-                  className="rounded-l-none border-l-0"
+                  className="border-l-0 rounded-l-none"
                 />
               </div>
             </FormField>
 
             {/* 2-column grid for other options */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6 items-end">
+            <div className="grid items-end grid-cols-2 gap-x-4 gap-y-6">
               {/* Line Height */}
               <FormField label="Line Height" disabled={isManualScale}>
                 <div className="space-y-1">
@@ -797,23 +880,23 @@ export function TextStyle({
                         role="combobox"
                         aria-expanded={stylesOpen}
                         disabled={
-                          fontSource === "variable" ||
-                          !selectedFontFamily ||
+                          (!selectedFontFamily && fontSource === "type") ||
+                          (!selectedVariable && fontSource === "variable") ||
                           availableStyles.length === 0
                         }
                         className={cn(
                           "justify-between w-full cursor-default",
-                          (fontSource === "variable" ||
-                            !selectedFontFamily ||
+                          ((!selectedFontFamily && fontSource === "type") ||
+                            (!selectedVariable && fontSource === "variable") ||
                             availableStyles.length === 0) &&
                             "opacity-50",
                           errors.styles && "border-red-500"
                         )}
                       >
-                        {fontSource === "variable"
-                          ? "Determined by variable"
-                          : !selectedFontFamily
+                        {fontSource === "type" && !selectedFontFamily
                           ? "Select font family first..."
+                          : fontSource === "variable" && !selectedVariable
+                          ? "Select variable first..."
                           : availableStyles.length === 0
                           ? "No styles available"
                           : getStylesDisplayText()}
@@ -861,7 +944,7 @@ export function TextStyle({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {errors.styles && fontSource === "type" && (
+                  {errors.styles && (
                     <p className="text-xs text-red-600">{errors.styles}</p>
                   )}
                 </div>
@@ -922,8 +1005,8 @@ export function TextStyle({
               </FormField>
 
               {/* Manual Scale Toggle */}
-              <div className="flex items-center gap-2 col-span-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">
+              <div className="flex items-center col-span-2 gap-2">
+                <span className="text-xs font-medium uppercase text-muted-foreground">
                   OR
                 </span>
                 <Button
@@ -943,12 +1026,12 @@ export function TextStyle({
               {/* Generate Button */}
               <div className="col-span-2 pt-4">
                 {submitError && (
-                  <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  <div className="p-3 mb-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
                     {submitError}
                   </div>
                 )}
                 {errors.manualSizes && isManualScale && (
-                  <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  <div className="p-3 mb-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
                     {errors.manualSizes}
                   </div>
                 )}
