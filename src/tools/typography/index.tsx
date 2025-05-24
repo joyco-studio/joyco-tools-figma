@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { PlusIcon } from "lucide-react";
 import { TextStyle } from "./components/text-style";
-import { generateId } from "@/lib/utils";
+import { useFontsStore, useVariablesStore } from "../../stores/fonts";
+import { pluginApi } from "../../api";
 
 interface TextStyleData {
   id: string;
@@ -12,20 +14,28 @@ interface TextStyleData {
   };
 }
 
+interface StyleConfiguration {
+  id: string;
+  config: any;
+  isValid: boolean;
+}
+
+// Helper function to generate unique IDs
+function generateId() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
 export function Typography() {
-  const [styles, setStyles] = React.useState<TextStyleData[]>([
-    // Add some test data to see the delete button
-    {
-      id: "test-1",
-      name: "Heading Large",
-      fontName: { family: "Inter", style: "Bold" },
-    },
-    {
-      id: "test-2",
-      name: "Body Text",
-      fontName: { family: "Inter", style: "Regular" },
-    },
-  ]);
+  const [styles, setStyles] = React.useState<TextStyleData[]>([]);
+  const [styleConfigurations, setStyleConfigurations] = React.useState<
+    Map<string, StyleConfiguration>
+  >(new Map());
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  // Use the global fonts and variables stores
+  const { fonts, isLoading: fontsLoading } = useFontsStore();
+  const { variables, isLoading: variablesLoading } = useVariablesStore();
 
   const handleAddStyle = (style: Omit<TextStyleData, "id">) => {
     const newStyle: TextStyleData = {
@@ -48,12 +58,93 @@ export function Typography() {
 
   const handleDeleteStyle = (id: string) => {
     setStyles((prevStyles) => prevStyles.filter((style) => style.id !== id));
+    // Also remove the configuration
+    setStyleConfigurations((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(id);
+      return newMap;
+    });
+  };
+
+  const handleConfigurationChange = (
+    id: string,
+    config: any,
+    isValid: boolean
+  ) => {
+    setStyleConfigurations((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(id, { id, config, isValid });
+      return newMap;
+    });
+  };
+
+  // Check if all styles are valid and we have at least one style
+  const canGenerate = React.useMemo(() => {
+    if (styles.length === 0) return false;
+    const allConfigs = Array.from(styleConfigurations.values());
+    return styles.every((style) => {
+      const config = allConfigs.find((c) => c.id === style.id);
+      return config && config.isValid;
+    });
+  }, [styles, styleConfigurations]);
+
+  const handleApply = async () => {
+    if (!canGenerate) return;
+
+    setIsGenerating(true);
+    setSubmitError(null);
+
+    try {
+      const allConfigs = Array.from(styleConfigurations.values());
+      let totalStylesCreated = 0;
+
+      // Process each style configuration
+      for (const styleConfig of allConfigs) {
+        const style = styles.find((s) => s.id === styleConfig.id);
+        if (!style || !styleConfig.isValid) continue;
+
+        console.log(
+          `🚀 Generating typography system for "${style.name}":`,
+          styleConfig.config
+        );
+
+        const result = await pluginApi.createTypographySystem(
+          styleConfig.config
+        );
+
+        if (result.success) {
+          console.log(
+            `✅ Typography system "${style.name}" created successfully:`,
+            result
+          );
+          totalStylesCreated += result.styles.length;
+        } else {
+          throw new Error(
+            `Failed to create "${style.name}": ${result.message}`
+          );
+        }
+      }
+
+      // Success notification
+      await pluginApi.notify(
+        `Successfully created ${totalStylesCreated} text styles from ${allConfigs.length} typography systems!`
+      );
+    } catch (error) {
+      console.error("❌ Error generating typography systems:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate typography systems"
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-4 overflow-auto">
         {/* List of text styles */}
         <div className="space-y-4">
           {styles.map((style) => (
@@ -65,28 +156,49 @@ export function Typography() {
                 handleUpdateStyle(style.id, updatedStyle)
               }
               onDelete={() => handleDeleteStyle(style.id)}
+              onConfigurationChange={(config, isValid) =>
+                handleConfigurationChange(style.id, config, isValid)
+              }
             />
           ))}
 
           {/* Add new style */}
-          <TextStyle mode="add" onChange={handleAddStyle} />
+          <button
+            onClick={() => {
+              handleAddStyle({
+                name: "New Style",
+                fontName: { family: "Arial", style: "Regular" },
+              });
+            }}
+            className="flex items-center justify-center w-full gap-3 p-6 text-sm italic font-normal transition-colors border border-dashed rounded-lg cursor-default text-muted-foreground bg-foreground/5 border-muted-foreground/25 hover:border-muted-foreground/50"
+          >
+            <PlusIcon className="w-4 h-4" />
+            <span className="text-sm font-normal">Add new style</span>
+          </button>
         </div>
       </div>
 
       {/* Sticky bottom action area */}
-      <div className="sticky bottom-0 flex items-center justify-between p-4 border-t border-border bg-background">
-        <span className="text-sm text-muted-foreground">
-          {styles.length} {styles.length === 1 ? "style" : "styles"} added
-        </span>
-        <Button
-          disabled={styles.length === 0}
-          onClick={() => {
-            // TODO: Implement apply logic
-          }}
-          className="cursor-default"
-        >
-          Apply
-        </Button>
+      <div className="sticky bottom-0 flex flex-col gap-3 p-4 border-t border-border bg-background">
+        {submitError && (
+          <div className="p-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
+            {submitError}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {styles.length} {styles.length === 1 ? "style" : "styles"}{" "}
+            configured
+          </span>
+          <Button
+            disabled={!canGenerate || isGenerating}
+            onClick={handleApply}
+            className="cursor-default"
+          >
+            {isGenerating ? "Generating..." : "Apply"}
+          </Button>
+        </div>
       </div>
     </div>
   );

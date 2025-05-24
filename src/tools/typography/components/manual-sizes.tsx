@@ -3,7 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { FormField } from "../../../components/ui/form-field";
-import { Plus, X } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plus, X, Check, ChevronsUpDown } from "lucide-react";
 import { VariableSelector } from "./variable-selector";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +26,7 @@ export interface SizeEntry {
   size: number;
   lineHeight: number;
   letterSpacing: number;
+  styles: string[]; // Add styles to each size
   // Optional variable binding only for size
   sizeVariable?: Variable | null;
 }
@@ -29,6 +43,7 @@ interface Variable {
 interface ManualSizesProps {
   sizes: SizeEntry[];
   onSizesChange: (sizes: SizeEntry[]) => void;
+  availableStyles: string[]; // Available styles from font family/variable
   defaultRatio?: number;
   className?: string;
 }
@@ -52,6 +67,7 @@ const getTypeLabel = (resolvedType: string) => {
 export function ManualSizes({
   sizes,
   onSizesChange,
+  availableStyles,
   defaultRatio = 1.2,
   className,
 }: ManualSizesProps) {
@@ -64,6 +80,7 @@ export function ManualSizes({
     const baseSize = prevSize ? prevSize.size : 10;
     const baseLineHeight = prevSize ? prevSize.lineHeight : 1.4;
     const baseLetterSpacing = prevSize ? prevSize.letterSpacing : 0;
+    const baseStyles = prevSize ? prevSize.styles : availableStyles.slice(0, 1); // Default to first style
 
     const newSize = {
       id: newId,
@@ -71,6 +88,7 @@ export function ManualSizes({
       size: Math.round(baseSize * defaultRatio),
       lineHeight: baseLineHeight, // Copy from previous
       letterSpacing: baseLetterSpacing, // Copy from previous
+      styles: baseStyles, // Copy from previous or default
       sizeVariable: null,
     };
 
@@ -87,13 +105,40 @@ export function ManualSizes({
 
   const updateManualSize = (
     id: string,
-    field: "name" | "size" | "lineHeight" | "letterSpacing" | "sizeVariable",
-    value: string | number | Variable | null
+    field:
+      | "name"
+      | "size"
+      | "lineHeight"
+      | "letterSpacing"
+      | "styles"
+      | "sizeVariable",
+    value: string | number | string[] | Variable | null
   ) => {
     const newSizes = sizes.map((size) =>
       size.id === id ? { ...size, [field]: value } : size
     );
     onSizesChange(newSizes);
+  };
+
+  const handleStyleToggle = (sizeId: string, styleValue: string) => {
+    const size = sizes.find((s) => s.id === sizeId);
+    if (!size) return;
+
+    const newStyles = size.styles.includes(styleValue)
+      ? size.styles.filter((s) => s !== styleValue)
+      : [...size.styles, styleValue];
+
+    updateManualSize(sizeId, "styles", newStyles);
+  };
+
+  const getStylesDisplayText = (styles: string[]) => {
+    if (styles.length === 0) return "Select styles...";
+    if (styles.length === availableStyles.length && availableStyles.length > 0)
+      return "All styles";
+    if (styles.length === 1) {
+      return styles[0];
+    }
+    return `${styles.length} styles selected`;
   };
 
   return (
@@ -115,6 +160,82 @@ export function ManualSizes({
                       updateManualSize(sizeEntry.id, "name", e.target.value)
                     }
                   />
+                </FormField>
+
+                {/* Styles Multi-Select - Full Width */}
+                <FormField label="Styles">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        disabled={availableStyles.length === 0}
+                        className={cn(
+                          "justify-between w-full cursor-default",
+                          availableStyles.length === 0 && "opacity-50"
+                        )}
+                      >
+                        {availableStyles.length === 0
+                          ? "No styles available"
+                          : getStylesDisplayText(sizeEntry.styles)}
+                        <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <div className="flex items-center justify-between p-2 border-b">
+                          <span className="text-sm font-medium">
+                            Select Styles
+                          </span>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs cursor-default"
+                              onClick={() => {
+                                const allSelected =
+                                  sizeEntry.styles.length ===
+                                  availableStyles.length;
+                                updateManualSize(
+                                  sizeEntry.id,
+                                  "styles",
+                                  allSelected ? [] : [...availableStyles]
+                                );
+                              }}
+                            >
+                              {sizeEntry.styles.length ===
+                              availableStyles.length
+                                ? "Clear"
+                                : "All"}
+                            </Button>
+                          </div>
+                        </div>
+                        <CommandList className="max-h-[200px] overflow-auto">
+                          <CommandGroup>
+                            {availableStyles.map((style) => (
+                              <CommandItem
+                                key={style}
+                                onSelect={() =>
+                                  handleStyleToggle(sizeEntry.id, style)
+                                }
+                                className="cursor-default"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    sizeEntry.styles.includes(style)
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <span>{style}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </FormField>
 
                 {/* 2-Column Grid */}
