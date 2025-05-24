@@ -6,12 +6,21 @@ export interface FormFieldProps {
   label: string;
   htmlFor?: string;
   className?: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }
 
 const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
-  ({ label, htmlFor, className, children, ...props }, ref) => (
-    <div ref={ref} className={cn("space-y-2", className)} {...props}>
+  ({ label, htmlFor, className, disabled, children, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "space-y-2",
+        disabled && "opacity-40 pointer-events-none",
+        className
+      )}
+      {...props}
+    >
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>

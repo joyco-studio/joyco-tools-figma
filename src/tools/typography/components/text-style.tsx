@@ -18,10 +18,6 @@ import { Label } from "../../../components/ui/label";
 import { FormField } from "../../../components/ui/form-field";
 import { Switch } from "../../../components/ui/switch";
 import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "../../../components/ui/toggle-group";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -41,7 +37,9 @@ import {
 import { cn } from "@/lib/utils";
 import { AutoResizeInput } from "./auto-resize-input";
 import { ManualSizes, type SizeEntry } from "./manual-sizes";
+import { VariableSelector } from "./variable-selector";
 import { useFontsStore, useVariablesStore } from "../../../stores/fonts";
+import { pluginApi } from "../../../api";
 
 interface Font {
   family: string;
@@ -66,6 +64,15 @@ interface TextStyleProps {
   mode: "add" | "edit";
 }
 
+interface ValidationErrors {
+  fontFamily?: string;
+  styles?: string;
+  lineHeight?: string;
+  letterSpacing?: string;
+  scaleRatio?: string;
+  manualSizes?: string;
+}
+
 const RATIO_OPTIONS = [
   { value: "1.067", label: "Minor Second (1.067)" },
   { value: "1.125", label: "Major Second (1.125)" },
@@ -76,6 +83,22 @@ const RATIO_OPTIONS = [
   { value: "1.618", label: "Golden Ratio (1.618)" },
   { value: "2.0", label: "Octave (2.0)" },
 ];
+
+// Helper function to get human-readable type
+const getTypeLabel = (resolvedType: string) => {
+  switch (resolvedType) {
+    case "STRING":
+      return "text";
+    case "FLOAT":
+      return "number";
+    case "BOOLEAN":
+      return "boolean";
+    case "COLOR":
+      return "color";
+    default:
+      return resolvedType.toLowerCase();
+  }
+};
 
 export function TextStyle({
   currentFont,
@@ -103,12 +126,28 @@ export function TextStyle({
   const [letterSpacing, setLetterSpacing] = React.useState("0");
   const [isManualScale, setIsManualScale] = React.useState(false);
   const [manualSizes, setManualSizes] = React.useState<SizeEntry[]>([
-    { id: "1", name: "size-1", size: 10, lineHeight: 1.4, letterSpacing: 0 },
+    { id: "1", name: "1", size: 10, lineHeight: 1.4, letterSpacing: 0 },
   ]);
 
+  // Error and submit state
+  const [errors, setErrors] = React.useState<ValidationErrors>({});
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  // Initial state for change detection
+  const [initialState] = React.useState({
+    styleName,
+    fontSource,
+    selectedFontFamily,
+    selectedStyles,
+    selectedRatio,
+    lineHeight,
+    letterSpacing,
+    isManualScale,
+    manualSizes,
+  });
+
   // Variables state
-  const [variablesOpen, setVariablesOpen] = React.useState(false);
-  const [variableSearchQuery, setVariableSearchQuery] = React.useState("");
   const [selectedVariable, setSelectedVariable] =
     React.useState<Variable | null>(null);
 
@@ -183,11 +222,15 @@ export function TextStyle({
   };
 
   const handleStyleToggle = (styleValue: string) => {
-    setSelectedStyles((prev) =>
-      prev.includes(styleValue)
-        ? prev.filter((s) => s !== styleValue)
-        : [...prev, styleValue]
-    );
+    const newStyles = selectedStyles.includes(styleValue)
+      ? selectedStyles.filter((s) => s !== styleValue)
+      : [...selectedStyles, styleValue];
+
+    setSelectedStyles(newStyles);
+
+    if (newStyles.length > 0) {
+      clearError("styles");
+    }
   };
 
   const handleToggleAllStyles = () => {
@@ -217,12 +260,37 @@ export function TextStyle({
     setRatioOpen(false);
   };
 
+  const handleVariableSelect = (variable: Variable) => {
+    setSelectedVariable(variable);
+
+    // Switch to variable mode and update display
+    setFontSource("variable");
+    setValue(variable.name); // Show variable name in the input
+    setSelectedFontFamily(""); // Clear font family since we're using variable
+    clearError("fontFamily");
+
+    console.log("Selected variable:", variable);
+  };
+
+  const handleVariableUnlink = () => {
+    setSelectedVariable(null);
+    setFontSource("type");
+    setValue(""); // Clear the display value
+    setSelectedFontFamily(""); // Clear font family
+    console.log("Unlinked variable");
+  };
+
   const handleSelect = (currentValue: string) => {
     const trimmedValue = currentValue.trim();
     setValue(trimmedValue);
     setSelectedFontFamily(trimmedValue);
     setOpen(false);
     setSearchQuery(""); // Reset search when selecting
+    clearError("fontFamily");
+
+    // Switch to type mode and clear variable
+    setFontSource("type");
+    setSelectedVariable(null);
 
     const styleData = {
       name: styleName || `Style ${trimmedValue}`,
@@ -256,51 +324,250 @@ export function TextStyle({
     }
   };
 
-  // Filter variables based on search query for better performance
-  const filteredVariables = React.useMemo(() => {
-    if (!variableSearchQuery.trim()) {
-      // Show first 100 variables
-      return variables.slice(0, 100);
+  // Updated handlers with error clearing
+  const handleLineHeightChange = (value: string) => {
+    setLineHeight(value);
+    const num = parseFloat(value);
+    if (value.trim() && !isNaN(num) && num >= 0.5 && num <= 5) {
+      clearError("lineHeight");
     }
-
-    const query = variableSearchQuery.toLowerCase();
-    const filtered = variables.filter(
-      (variable) =>
-        variable.name.toLowerCase().includes(query) ||
-        variable.collectionName?.toLowerCase().includes(query) ||
-        variable.resolvedType.toLowerCase().includes(query)
-    );
-
-    // Limit filtered results to 100 for performance
-    return filtered.slice(0, 100);
-  }, [variables, variableSearchQuery]);
-
-  const handleVariableSelect = (variable: Variable) => {
-    setSelectedVariable(variable);
-    setVariablesOpen(false);
-    setVariableSearchQuery(""); // Reset search when selecting
-
-    // TODO: Handle variable selection for typography
-    console.log("Selected variable:", variable);
   };
 
-  // Helper function to render variable name with dimmed path
-  const renderVariableName = (name: string) => {
-    const lastSlashIndex = name.lastIndexOf("/");
-    if (lastSlashIndex === -1) {
-      // No slash found, return the name as is
-      return <span className="font-medium">{name}</span>;
+  const handleLetterSpacingChange = (value: string) => {
+    setLetterSpacing(value);
+    const num = parseFloat(value);
+    if (value.trim() && !isNaN(num) && num >= -100 && num <= 200) {
+      clearError("letterSpacing");
+    }
+  };
+
+  const handleManualSizesChange = (newSizes: SizeEntry[]) => {
+    setManualSizes(newSizes);
+
+    // Check if all sizes are valid
+    const allValid = newSizes.every(
+      (size) =>
+        size.name.trim() &&
+        size.size > 0 &&
+        size.lineHeight >= 0.5 &&
+        size.lineHeight <= 5 &&
+        size.letterSpacing >= -100 &&
+        size.letterSpacing <= 200
+    );
+
+    if (allValid) {
+      clearError("manualSizes");
+    }
+  };
+
+  // Validation functions
+  const validateForm = (): ValidationErrors => {
+    const newErrors: ValidationErrors = {};
+
+    // Font family or variable validation
+    if (fontSource === "type" && !selectedFontFamily.trim()) {
+      newErrors.fontFamily = "Font family is required";
     }
 
-    const path = name.substring(0, lastSlashIndex + 1); // Include the slash
-    const actualName = name.substring(lastSlashIndex + 1);
+    if (fontSource === "variable" && !selectedVariable) {
+      newErrors.fontFamily = "Variable selection is required";
+    }
 
+    // Styles validation (only for type mode)
+    if (fontSource === "type" && selectedStyles.length === 0) {
+      newErrors.styles = "At least one style must be selected";
+    }
+
+    // Line height validation (only when not manual mode)
+    if (!isManualScale) {
+      const lineHeightNum = parseFloat(lineHeight);
+      if (
+        !lineHeight.trim() ||
+        isNaN(lineHeightNum) ||
+        lineHeightNum < 0.5 ||
+        lineHeightNum > 5
+      ) {
+        newErrors.lineHeight = "Line height must be between 0.5 and 5";
+      }
+    }
+
+    // Letter spacing validation (only when not manual mode)
+    if (!isManualScale) {
+      const letterSpacingNum = parseFloat(letterSpacing);
+      if (
+        !letterSpacing.trim() ||
+        isNaN(letterSpacingNum) ||
+        letterSpacingNum < -100 ||
+        letterSpacingNum > 200
+      ) {
+        newErrors.letterSpacing =
+          "Letter spacing must be between -100% and 200%";
+      }
+    }
+
+    // Scale ratio validation (when not manual)
+    if (!isManualScale && !selectedRatio) {
+      newErrors.scaleRatio = "Scale ratio is required";
+    }
+
+    // Manual sizes validation (when manual)
+    if (isManualScale) {
+      const hasInvalidSize = manualSizes.some(
+        (size) =>
+          !size.name.trim() ||
+          size.size <= 0 ||
+          size.lineHeight < 0.5 ||
+          size.lineHeight > 5 ||
+          size.letterSpacing < -100 ||
+          size.letterSpacing > 200
+      );
+      if (hasInvalidSize) {
+        newErrors.manualSizes = "All manual sizes must have valid values";
+      }
+    }
+
+    return newErrors;
+  };
+
+  // Check if form has changes
+  const hasChanges = React.useMemo(() => {
     return (
-      <span className="font-medium">
-        <span className="opacity-50">{path}</span>
-        <span>{actualName}</span>
-      </span>
+      styleName !== initialState.styleName ||
+      fontSource !== initialState.fontSource ||
+      selectedFontFamily !== initialState.selectedFontFamily ||
+      JSON.stringify(selectedStyles) !==
+        JSON.stringify(initialState.selectedStyles) ||
+      selectedRatio !== initialState.selectedRatio ||
+      lineHeight !== initialState.lineHeight ||
+      letterSpacing !== initialState.letterSpacing ||
+      isManualScale !== initialState.isManualScale ||
+      JSON.stringify(manualSizes) !== JSON.stringify(initialState.manualSizes)
     );
+  }, [
+    styleName,
+    fontSource,
+    selectedFontFamily,
+    selectedStyles,
+    selectedRatio,
+    lineHeight,
+    letterSpacing,
+    isManualScale,
+    manualSizes,
+  ]);
+
+  // Check if form is valid
+  const isFormValid = React.useMemo(() => {
+    const currentErrors = validateForm();
+    return Object.keys(currentErrors).length === 0;
+  }, [
+    selectedFontFamily,
+    selectedStyles,
+    lineHeight,
+    letterSpacing,
+    selectedRatio,
+    isManualScale,
+    manualSizes,
+  ]);
+
+  // Clear specific error when field becomes valid
+  const clearError = (field: keyof ValidationErrors) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Generate configuration for external submission
+  const generateConfig = React.useCallback(() => {
+    return {
+      name: styleName,
+      fontSource: fontSource as "type" | "variable",
+
+      // Font-based configuration
+      ...(fontSource === "type" && {
+        fontFamily: selectedFontFamily,
+        styles: selectedStyles,
+      }),
+
+      // Variable-based configuration
+      ...(fontSource === "variable" && {
+        variableId: selectedVariable?.id,
+      }),
+
+      // Typography settings (only when not manual mode)
+      ...(!isManualScale && {
+        lineHeight: parseFloat(lineHeight),
+        letterSpacing: parseFloat(letterSpacing),
+      }),
+
+      // Scale configuration
+      isManualScale,
+      ...(isManualScale
+        ? {
+            manualSizes: manualSizes.map((size) => ({
+              id: size.id,
+              name: size.name,
+              size: size.size,
+              lineHeight: size.lineHeight,
+              letterSpacing: size.letterSpacing,
+            })),
+          }
+        : {
+            scaleRatio: parseFloat(selectedRatio),
+          }),
+    };
+  }, [
+    styleName,
+    fontSource,
+    selectedFontFamily,
+    selectedStyles,
+    selectedVariable,
+    isManualScale,
+    lineHeight,
+    letterSpacing,
+    manualSizes,
+    selectedRatio,
+  ]);
+
+  // Handle submit
+  const handleSubmit = async () => {
+    const formErrors = validateForm();
+    setErrors(formErrors);
+
+    if (Object.keys(formErrors).length > 0) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const config = generateConfig();
+      console.log("🚀 Submitting typography system configuration:", config);
+
+      const result = await pluginApi.createTypographySystem(config);
+
+      if (result.success) {
+        console.log("✅ Typography system created successfully:", result);
+        await pluginApi.notify(
+          `Successfully created ${result.styles.length} text styles!`
+        );
+      } else {
+        throw new Error(result.message || "Failed to create typography system");
+      }
+    } catch (error) {
+      console.error("❌ Error creating typography system:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create typography system"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -377,337 +644,281 @@ export function TextStyle({
           <div className="flex flex-col gap-6 px-4 py-6">
             {/* Font Source & Family - Full Width Row */}
             <FormField label="Font Family">
-              <div className="flex gap-4">
-                {/* Font Source Toggle */}
-                <ToggleGroup
-                  type="single"
-                  value={fontSource}
-                  onValueChange={(value) =>
-                    value && setFontSource(value as string)
-                  }
-                  className="justify-start gap-0 [&>*]:border-r-0 [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:last-child]:border-r"
-                >
-                  <ToggleGroupItem
-                    value="type"
-                    className="border-r-0 rounded-r-none"
-                  >
-                    <Type className="size-4" />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="variable" className="rounded-l-none">
-                    <Hexagon className="size-4" />
-                  </ToggleGroupItem>
-                </ToggleGroup>
-
-                {/* Font Family - Only show when type is selected */}
-                {fontSource === "type" && (
-                  <div className="flex-1">
-                    <Popover open={open} onOpenChange={setOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={open}
-                          className="justify-between w-full cursor-default"
-                          disabled={fontsLoading}
-                        >
-                          {value ? value : "Select font..."}
-                          <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command shouldFilter={false}>
-                          <CommandInput
-                            placeholder="Search font..."
-                            value={searchQuery}
-                            onValueChange={setSearchQuery}
-                            className="focus:outline-none focus:ring-0"
-                          />
-                          <CommandList className="max-h-[300px] overflow-auto">
-                            <CommandEmpty>
-                              {searchQuery
-                                ? "No matching fonts found."
-                                : "No fonts available."}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {filteredFonts.map((font, index) => {
-                                const fontValue = font.family.trim();
-                                const isSelected = value?.trim() === fontValue;
-
-                                return (
-                                  <CommandItem
-                                    key={`${font.family}-${font.styles.join(
-                                      ","
-                                    )}`}
-                                    value={fontValue}
-                                    onSelect={handleSelect}
-                                    className={cn("cursor-default")}
-                                  >
-                                    <div className="flex items-center w-4 mr-2">
-                                      {isSelected && (
-                                        <Check className="w-4 h-4 text-foreground" />
-                                      )}
-                                    </div>
-                                    <span>{font.family.trim()}</span>
-                                  </CommandItem>
-                                );
-                              })}
-                              {!searchQuery && fonts.length > 100 && (
-                                <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
-                                  Showing first 100 fonts. Use search to find
-                                  more.
-                                </div>
-                              )}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
-
-                {/* Variable Selector - Only show when variable is selected */}
-                {fontSource === "variable" && (
-                  <div className="flex-1">
-                    <Popover
-                      open={variablesOpen}
-                      onOpenChange={setVariablesOpen}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={variablesOpen}
-                          className="justify-between w-full cursor-default"
-                          disabled={variablesLoading}
-                        >
-                          <div className="flex items-center min-w-0 gap-2">
-                            {variablesLoading ? (
-                              "Loading variables..."
-                            ) : selectedVariable ? (
-                              <>
-                                {renderVariableName(selectedVariable.name)}
-                                <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
-                                  {selectedVariable.resolvedType}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="font-normal text-muted-foreground">
-                                Select variable...
+              <div className="flex">
+                {/* Font Family Input */}
+                <div className="flex-1">
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="justify-between w-full cursor-default rounded-r-none border-r"
+                        disabled={fontsLoading}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {selectedVariable ? (
+                            <>
+                              <span className="truncate text-sm font-medium">
+                                {selectedVariable.name}
                               </span>
-                            )}
-                          </div>
-                          <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command shouldFilter={false}>
-                          <CommandInput
-                            placeholder="Search variables..."
-                            value={variableSearchQuery}
-                            onValueChange={setVariableSearchQuery}
-                            className="focus:outline-none focus:ring-0"
-                          />
-                          <CommandList className="max-h-[300px] overflow-auto">
-                            <CommandEmpty>
-                              {variableSearchQuery
-                                ? "No matching variables found."
-                                : variables.length === 0
-                                ? "No typography variables available."
-                                : "No variables found."}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {filteredVariables.map((variable) => {
-                                const isSelected =
-                                  selectedVariable?.id === variable.id;
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
+                                {getTypeLabel(selectedVariable.resolvedType)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="truncate">
+                              {value ? value : "Select font..."}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search font..."
+                          value={searchQuery}
+                          onValueChange={setSearchQuery}
+                          className="focus:outline-none focus:ring-0"
+                        />
+                        <CommandList className="max-h-[300px] overflow-auto">
+                          <CommandEmpty>
+                            {searchQuery
+                              ? "No matching fonts found."
+                              : "No fonts available."}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {filteredFonts.map((font, index) => {
+                              const fontValue = font.family.trim();
+                              const isSelected = value?.trim() === fontValue;
 
-                                return (
-                                  <CommandItem
-                                    key={variable.id}
-                                    value={`${variable.name}-${variable.id}`}
-                                    onSelect={() =>
-                                      handleVariableSelect(variable)
-                                    }
-                                    className={cn("cursor-default")}
-                                  >
-                                    <div className="flex items-center w-4 mr-2">
-                                      {isSelected && (
-                                        <Check className="w-4 h-4 text-foreground" />
-                                      )}
-                                    </div>
-                                    <div className="flex flex-col flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        {renderVariableName(variable.name)}
-                                        <span className="px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground">
-                                          {variable.resolvedType}
-                                        </span>
-                                      </div>
-                                      {variable.collectionName && (
-                                        <span className="text-xs truncate text-muted-foreground">
-                                          {variable.collectionName}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </CommandItem>
-                                );
-                              })}
-                              {!variableSearchQuery &&
-                                variables.length > 100 && (
-                                  <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
-                                    Showing first 100 variables. Use search to
-                                    find more.
+                              return (
+                                <CommandItem
+                                  key={`${font.family}-${font.styles.join(
+                                    ","
+                                  )}`}
+                                  value={fontValue}
+                                  onSelect={handleSelect}
+                                  className={cn("cursor-default")}
+                                >
+                                  <div className="flex items-center w-4 mr-2">
+                                    {isSelected && (
+                                      <Check className="w-4 h-4 text-foreground" />
+                                    )}
                                   </div>
-                                )}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
+                                  <span>{font.family.trim()}</span>
+                                </CommandItem>
+                              );
+                            })}
+                            {!searchQuery && fonts.length > 100 && (
+                              <div className="px-2 py-1 text-xs text-center border-t text-muted-foreground">
+                                Showing first 100 fonts. Use search to find
+                                more.
+                              </div>
+                            )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Variable Selector Button */}
+                <VariableSelector
+                  selectedVariable={selectedVariable}
+                  onVariableSelect={handleVariableSelect}
+                  onUnlink={handleVariableUnlink}
+                  allowedTypes={["STRING"]}
+                  className="rounded-l-none border-l-0"
+                />
               </div>
             </FormField>
 
             {/* 2-column grid for other options */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-6 items-end">
               {/* Line Height */}
-              <FormField label="Line Height">
-                <Input
-                  type="text"
-                  placeholder="1.4"
-                  value={lineHeight}
-                  onChange={(e) => setLineHeight(e.target.value)}
-                  className="w-full"
-                />
+              <FormField label="Line Height" disabled={isManualScale}>
+                <div className="space-y-1">
+                  <Input
+                    type="text"
+                    placeholder="1.4"
+                    value={lineHeight}
+                    onChange={(e) => handleLineHeightChange(e.target.value)}
+                    disabled={isManualScale}
+                    className={cn(
+                      "w-full",
+                      errors.lineHeight && "border-red-500"
+                    )}
+                  />
+                  {errors.lineHeight && !isManualScale && (
+                    <p className="text-xs text-red-600">{errors.lineHeight}</p>
+                  )}
+                </div>
               </FormField>
 
               {/* Letter Spacing */}
-              <FormField label="Letter Spacing">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="0"
-                    value={letterSpacing}
-                    onChange={(e) => setLetterSpacing(e.target.value)}
-                    className="pr-8"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span className="text-sm text-muted-foreground">%</span>
+              <FormField label="Letter Spacing" disabled={isManualScale}>
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="0"
+                      value={letterSpacing}
+                      onChange={(e) =>
+                        handleLetterSpacingChange(e.target.value)
+                      }
+                      disabled={isManualScale}
+                      className={cn(
+                        "pr-8",
+                        errors.letterSpacing && "border-red-500"
+                      )}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
                   </div>
+                  {errors.letterSpacing && !isManualScale && (
+                    <p className="text-xs text-red-600">
+                      {errors.letterSpacing}
+                    </p>
+                  )}
                 </div>
               </FormField>
 
               {/* Font Styles Multi-Select */}
               <FormField label="Styles">
-                <Popover open={stylesOpen} onOpenChange={setStylesOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={stylesOpen}
-                      disabled={
-                        !selectedFontFamily || availableStyles.length === 0
-                      }
-                      className={cn(
-                        "justify-between w-full cursor-default",
-                        (!selectedFontFamily || availableStyles.length === 0) &&
-                          "opacity-50"
-                      )}
-                    >
-                      {!selectedFontFamily
-                        ? "Select font family first..."
-                        : availableStyles.length === 0
-                        ? "No styles available"
-                        : getStylesDisplayText()}
-                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <div className="flex items-center justify-between p-2 border-b">
-                        <span className="text-sm font-medium">
-                          Select Styles
-                        </span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs cursor-default"
-                            onClick={handleToggleAllStyles}
-                          >
-                            {getAllClearStylesButtonText()}
-                          </Button>
-                        </div>
-                      </div>
-                      <CommandList className="max-h-[200px] overflow-auto">
-                        <CommandGroup>
-                          {availableStyles.map((style) => (
-                            <CommandItem
-                              key={style}
-                              onSelect={() => handleStyleToggle(style)}
-                              className="cursor-default"
+                <div className="space-y-1">
+                  <Popover open={stylesOpen} onOpenChange={setStylesOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={stylesOpen}
+                        disabled={
+                          fontSource === "variable" ||
+                          !selectedFontFamily ||
+                          availableStyles.length === 0
+                        }
+                        className={cn(
+                          "justify-between w-full cursor-default",
+                          (fontSource === "variable" ||
+                            !selectedFontFamily ||
+                            availableStyles.length === 0) &&
+                            "opacity-50",
+                          errors.styles && "border-red-500"
+                        )}
+                      >
+                        {fontSource === "variable"
+                          ? "Determined by variable"
+                          : !selectedFontFamily
+                          ? "Select font family first..."
+                          : availableStyles.length === 0
+                          ? "No styles available"
+                          : getStylesDisplayText()}
+                        <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <div className="flex items-center justify-between p-2 border-b">
+                          <span className="text-sm font-medium">
+                            Select Styles
+                          </span>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs cursor-default"
+                              onClick={handleToggleAllStyles}
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedStyles.includes(style)
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <span>{style}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                              {getAllClearStylesButtonText()}
+                            </Button>
+                          </div>
+                        </div>
+                        <CommandList className="max-h-[200px] overflow-auto">
+                          <CommandGroup>
+                            {availableStyles.map((style) => (
+                              <CommandItem
+                                key={style}
+                                onSelect={() => handleStyleToggle(style)}
+                                className="cursor-default"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedStyles.includes(style)
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <span>{style}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.styles && fontSource === "type" && (
+                    <p className="text-xs text-red-600">{errors.styles}</p>
+                  )}
+                </div>
               </FormField>
 
               {/* Scale Ratio Single-Select */}
               <FormField label="Scale Ratio">
-                <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={ratioOpen}
-                      disabled={isManualScale}
-                      className={cn(
-                        "justify-between w-full cursor-default",
-                        isManualScale && "opacity-50"
-                      )}
-                    >
-                      {getRatioDisplayText()}
-                      <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <CommandList className="max-h-[200px] overflow-auto">
-                        <CommandGroup>
-                          {RATIO_OPTIONS.map((ratio) => (
-                            <CommandItem
-                              key={ratio.value}
-                              onSelect={() => handleRatioSelect(ratio.value)}
-                              className="cursor-default"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedRatio === ratio.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <span>{ratio.label}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <div className="space-y-1">
+                  <Popover open={ratioOpen} onOpenChange={setRatioOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={ratioOpen}
+                        disabled={isManualScale}
+                        className={cn(
+                          "justify-between w-full cursor-default",
+                          isManualScale && "opacity-50",
+                          errors.scaleRatio &&
+                            !isManualScale &&
+                            "border-red-500"
+                        )}
+                      >
+                        {getRatioDisplayText()}
+                        <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandList className="max-h-[200px] overflow-auto">
+                          <CommandGroup>
+                            {RATIO_OPTIONS.map((ratio) => (
+                              <CommandItem
+                                key={ratio.value}
+                                onSelect={() => handleRatioSelect(ratio.value)}
+                                className="cursor-default"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedRatio === ratio.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <span>{ratio.label}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.scaleRatio && !isManualScale && (
+                    <p className="text-xs text-red-600">{errors.scaleRatio}</p>
+                  )}
+                </div>
               </FormField>
 
               {/* Manual Scale Toggle */}
@@ -728,6 +939,27 @@ export function TextStyle({
                   Manual Scale
                 </Button>
               </div>
+
+              {/* Generate Button */}
+              <div className="col-span-2 pt-4">
+                {submitError && (
+                  <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                    {submitError}
+                  </div>
+                )}
+                {errors.manualSizes && isManualScale && (
+                  <div className="mb-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                    {errors.manualSizes}
+                  </div>
+                )}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!hasChanges || !isFormValid || isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? "Generating..." : "Generate"}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -735,7 +967,7 @@ export function TextStyle({
           {isManualScale && (
             <ManualSizes
               sizes={manualSizes}
-              onSizesChange={setManualSizes}
+              onSizesChange={handleManualSizesChange}
               defaultRatio={parseFloat(selectedRatio)}
             />
           )}
