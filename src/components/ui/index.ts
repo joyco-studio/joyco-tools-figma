@@ -10,8 +10,6 @@ export {
   SelectValue,
 } from "./select";
 export { Switch } from "./switch";
-export { VariableInput } from "./variable-input";
-export { VariableSelect } from "./variable-select";
 export {
   Command,
   CommandDialog,
