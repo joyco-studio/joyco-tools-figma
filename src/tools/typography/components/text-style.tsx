@@ -63,6 +63,7 @@ interface TextStyleProps {
   }) => void;
   onDelete?: () => void;
   mode: "add" | "edit";
+  onConfigurationChange?: (config: any, isValid: boolean) => void;
 }
 
 interface ValidationErrors {
@@ -128,6 +129,7 @@ export function TextStyle({
   onChange,
   onDelete,
   mode,
+  onConfigurationChange,
 }: TextStyleProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -152,10 +154,8 @@ export function TextStyle({
     { id: "1", name: "1", size: 10, lineHeight: 1.4, letterSpacing: 0 },
   ]);
 
-  // Error and submit state
+  // Error state (keep for individual field validation)
   const [errors, setErrors] = React.useState<ValidationErrors>({});
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   // Initial state for change detection
   const [initialState] = React.useState({
@@ -615,43 +615,27 @@ export function TextStyle({
     selectedRatio,
   ]);
 
-  // Handle submit
-  const handleSubmit = async () => {
-    const formErrors = validateForm();
-    setErrors(formErrors);
-
-    if (Object.keys(formErrors).length > 0) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
+  // Notify parent of configuration changes
+  React.useEffect(() => {
+    if (onConfigurationChange) {
       const config = generateConfig();
-      console.log("🚀 Submitting typography system configuration:", config);
-
-      const result = await pluginApi.createTypographySystem(config);
-
-      if (result.success) {
-        console.log("✅ Typography system created successfully:", result);
-        await pluginApi.notify(
-          `Successfully created ${result.styles.length} text styles!`
-        );
-      } else {
-        throw new Error(result.message || "Failed to create typography system");
-      }
-    } catch (error) {
-      console.error("❌ Error creating typography system:", error);
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Failed to create typography system"
-      );
-    } finally {
-      setIsSubmitting(false);
+      const errors = validateForm();
+      const isValid = Object.keys(errors).length === 0;
+      onConfigurationChange(config, isValid);
     }
-  };
+  }, [
+    styleName,
+    fontSource,
+    selectedFontFamily,
+    selectedStyles,
+    selectedVariable,
+    isManualScale,
+    lineHeight,
+    letterSpacing,
+    manualSizes,
+    selectedRatio,
+    onConfigurationChange,
+  ]);
 
   return (
     <div className="w-full transition-colors border rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50">
@@ -1020,27 +1004,6 @@ export function TextStyle({
                   )}
                 >
                   Manual Scale
-                </Button>
-              </div>
-
-              {/* Generate Button */}
-              <div className="col-span-2 pt-4">
-                {submitError && (
-                  <div className="p-3 mb-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
-                    {submitError}
-                  </div>
-                )}
-                {errors.manualSizes && isManualScale && (
-                  <div className="p-3 mb-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
-                    {errors.manualSizes}
-                  </div>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!hasChanges || !isFormValid || isSubmitting}
-                  className="w-full"
-                >
-                  {isSubmitting ? "Generating..." : "Generate"}
                 </Button>
               </div>
             </div>
