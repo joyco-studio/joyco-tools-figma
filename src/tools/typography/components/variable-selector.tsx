@@ -13,7 +13,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Hexagon, Unlink2 } from "lucide-react";
+import { Check, ChevronsUpDown, Unlink2 } from "lucide-react";
+import { VariableIcon } from "@/components/icons/variable-icon";
 import { cn } from "@/lib/utils";
 import { useVariablesStore } from "../../../stores/fonts";
 
@@ -137,7 +138,7 @@ export function VariableSelector({
           {selectedVariable ? (
             <Unlink2 className="size-4" />
           ) : (
-            <Hexagon className="size-4" />
+            <VariableIcon className="size-4" />
           )}
         </Button>
       </PopoverTrigger>

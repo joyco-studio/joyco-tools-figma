@@ -139,10 +139,7 @@ export function ManualSizes({
                           }
                           disabled={!!sizeEntry.sizeVariable}
                           readOnly={!!sizeEntry.sizeVariable}
-                          className={cn(
-                            "rounded-r-none border-r-0",
-                            !sizeEntry.sizeVariable && "pr-8"
-                          )}
+                          className="border-r rounded-r-none"
                         />
                         {/* Variable display overlay */}
                         {sizeEntry.sizeVariable && (
