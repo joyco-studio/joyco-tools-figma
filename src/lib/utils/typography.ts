@@ -152,21 +152,26 @@ export function validateTypographyConfig(
     config.manualSizes &&
     availableStyles.length > 0
   ) {
-    const hasInvalidSize = config.manualSizes.some(
-      (size) =>
-        !size.name.trim() ||
-        size.size <= 0 ||
-        size.lineHeight < VALIDATION_RULES.lineHeight.min ||
-        size.lineHeight > VALIDATION_RULES.lineHeight.max ||
-        size.letterSpacing < VALIDATION_RULES.letterSpacing.min ||
-        size.letterSpacing > VALIDATION_RULES.letterSpacing.max ||
-        size.styles.length === 0
-    );
+    // Only validate if there are manual sizes to validate
+    if (config.manualSizes.length > 0) {
+      const hasInvalidSize = config.manualSizes.some(
+        (size) =>
+          !size.name.trim() ||
+          size.size <= 0 ||
+          size.lineHeight < VALIDATION_RULES.lineHeight.min ||
+          size.lineHeight > VALIDATION_RULES.lineHeight.max ||
+          size.letterSpacing < VALIDATION_RULES.letterSpacing.min ||
+          size.letterSpacing > VALIDATION_RULES.letterSpacing.max ||
+          size.styles.length === 0
+      );
 
-    if (hasInvalidSize) {
-      errors.manualSizes =
-        "All manual sizes must have valid values and at least one style";
+      if (hasInvalidSize) {
+        errors.manualSizes =
+          "All manual sizes must have valid values and at least one style";
+      }
     }
+    // Note: We don't require manual sizes to exist immediately when switching to manual mode
+    // The user can add them when ready
   }
 
   return errors;

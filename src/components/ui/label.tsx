@@ -7,6 +7,7 @@ const labelVariants = cva(
   {
     variants: {
       size: {
+        sm: "text-xs uppercase",
         default: "text-xs uppercase",
         lg: "text-sm uppercase",
       },

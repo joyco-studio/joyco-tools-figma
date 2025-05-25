@@ -19,110 +19,96 @@ export const AutoResizeInput = React.forwardRef<
       value,
       onValueChange,
       className,
-      minWidth = 1,
-      maxWidth,
+      minWidth = 20,
+      maxWidth = 300,
       style,
       ...props
     },
     ref
   ) => {
     const [inputWidth, setInputWidth] = React.useState(minWidth);
-    const sizerRef = React.useRef<HTMLDivElement>(null);
+    const measureRef = React.useRef<HTMLSpanElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     // Combine refs
     React.useImperativeHandle(ref, () => inputRef.current!);
 
-    const copyInputStyles = React.useCallback(() => {
-      if (!inputRef.current || !sizerRef.current) return;
+    const updateWidth = React.useCallback(() => {
+      if (!measureRef.current) return;
 
-      const inputNode = inputRef.current;
-      const sizerNode = sizerRef.current;
+      const measureElement = measureRef.current;
+      const textToMeasure = value || props.placeholder || "";
 
-      // Copy styles from input to sizer
-      const inputStyle = window.getComputedStyle(inputNode);
-      const copyStyle = [
-        "fontSize",
-        "fontFamily",
-        "fontWeight",
-        "fontStyle",
-        "letterSpacing",
-        "textTransform",
-        "whiteSpace",
-        "padding",
-        "border",
-      ] as const;
+      // Update the measuring element with current text
+      measureElement.textContent = textToMeasure;
 
-      copyStyle.forEach((property) => {
-        sizerNode.style[property] = inputStyle[property];
-      });
-    }, []);
+      // Get the measured width
+      const measuredWidth = measureElement.getBoundingClientRect().width;
 
-    const updateInputWidth = React.useCallback(() => {
-      if (!sizerRef.current) return;
+      // Add some padding for cursor and breathing room
+      let newWidth = Math.ceil(measuredWidth) + 8;
 
-      let newInputWidth = sizerRef.current.scrollWidth + 2; // 2px for cursor
+      // Apply min/max constraints
+      if (newWidth < minWidth) newWidth = minWidth;
+      if (maxWidth && newWidth > maxWidth) newWidth = maxWidth;
 
-      if (newInputWidth < minWidth) {
-        newInputWidth = minWidth;
-      } else if (maxWidth && newInputWidth > maxWidth) {
-        newInputWidth = maxWidth;
-      }
+      setInputWidth(newWidth);
+    }, [value, props.placeholder, minWidth, maxWidth]);
 
-      if (newInputWidth !== inputWidth) {
-        setInputWidth(newInputWidth);
-      }
-    }, [inputWidth, minWidth, maxWidth]);
-
+    // Update width when value changes
     React.useEffect(() => {
-      copyInputStyles();
-      updateInputWidth();
-    });
+      updateWidth();
+    }, [updateWidth]);
+
+    // Update width on mount and when font loads
+    React.useEffect(() => {
+      const timer = setTimeout(updateWidth, 0);
+      return () => clearTimeout(timer);
+    }, [updateWidth]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       onValueChange?.(newValue);
     };
 
-    const sizerValue = value || props.placeholder || "";
-
     return (
-      <>
+      <div className="relative inline-block">
         <input
           ref={inputRef}
           type="text"
           value={value}
           onChange={handleChange}
           style={{
-            ...style,
             width: inputWidth,
-            boxSizing: "border-box",
+            ...style,
           }}
           className={cn(
-            "bg-transparent border-0 outline-0 ring-0 shadow-none",
-            "text-sm font-medium min-w-0",
-            "focus:outline-0 focus:ring-0 focus:border-0",
+            "bg-transparent border-0 outline-none ring-0 shadow-none",
+            "text-sm font-medium min-w-0 px-0",
+            "focus:outline-none focus:ring-0 focus:border-0",
+            "placeholder:text-muted-foreground",
             className
           )}
           {...props}
         />
-        <div
-          ref={sizerRef}
-          className="absolute top-0 left-0 visibility-hidden overflow-scroll whitespace-pre"
+        {/* Hidden measuring element */}
+        <span
+          ref={measureRef}
+          className={cn(
+            "absolute invisible whitespace-pre text-sm font-medium",
+            "pointer-events-none select-none",
+            className
+          )}
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
             visibility: "hidden",
-            height: 0,
-            overflow: "scroll",
             whiteSpace: "pre",
             pointerEvents: "none",
+            userSelect: "none",
           }}
-        >
-          {sizerValue}
-        </div>
-      </>
+          aria-hidden="true"
+        />
+      </div>
     );
   }
 );

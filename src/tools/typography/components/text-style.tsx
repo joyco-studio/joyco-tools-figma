@@ -99,6 +99,18 @@ export function TextStyle({
     return Object.keys(currentErrors).length === 0;
   }, [currentErrors]);
 
+  // Check if a font is selected (either type font or variable)
+  const hasFontSelected = React.useMemo(() => {
+    return (
+      (state.config.fontSource === "type" && state.config.fontFamily?.trim()) ||
+      (state.config.fontSource === "variable" && state.selectedVariable)
+    );
+  }, [
+    state.config.fontSource,
+    state.config.fontFamily,
+    state.selectedVariable,
+  ]);
+
   // Notify parent of configuration changes
   React.useEffect(() => {
     if (onConfigurationChange) {
@@ -203,14 +215,45 @@ export function TextStyle({
       if (mode === "auto" && availableStyles.length > 0) {
         setAllStyles(availableStyles);
       }
+
+      // When switching to manual mode, ensure styles are selected and manual sizes have styles
+      if (mode === "manual" && availableStyles.length > 0) {
+        // Auto-select styles if no styles are selected
+        if (state.config.styles.length === 0) {
+          setAllStyles(availableStyles);
+        }
+
+        // Update existing manual sizes that have empty styles
+        const currentManualSizes = state.config.manualSizes || [];
+        const needsStyleUpdate = currentManualSizes.some(
+          (size) => size.styles.length === 0
+        );
+
+        if (needsStyleUpdate) {
+          // Always use ALL available styles for manual sizes
+          const updatedSizes = currentManualSizes.map((size) =>
+            size.styles.length === 0
+              ? { ...size, styles: availableStyles }
+              : size
+          );
+          setConfig({ manualSizes: updatedSizes });
+        }
+      }
     },
-    [setScalingMode, availableStyles, setAllStyles]
+    [
+      setScalingMode,
+      availableStyles,
+      setAllStyles,
+      state.config.styles.length,
+      state.config.manualSizes,
+      setConfig,
+    ]
   );
 
   return (
     <Accordion.Item
       value={styleId}
-      className="w-full transition-colors border rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50"
+      className="w-full transition-colors border rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50 overflow-clip"
     >
       <Accordion.Header className="flex items-center justify-between w-full gap-2 px-4 py-1 pr-1">
         <div className="flex items-center flex-1 gap-2">
@@ -263,7 +306,7 @@ export function TextStyle({
       </Accordion.Header>
 
       <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
-        <div className="flex flex-col gap-6 py-6 border-t border-border">
+        <div className="flex flex-col gap-6 pt-6 border-t border-border">
           {/* Font Selection */}
           <FormField size="lg" className="px-4" label="Font Family">
             <FontSelector
@@ -283,81 +326,91 @@ export function TextStyle({
 
           {/* Scaling Mode */}
           <FormField labelClassName="ml-4" size="lg" label="Scaling Mode">
-            <FolderTabs
-              value={state.scalingMode}
-              onValueChange={handleScalingModeChange}
+            <div
+              className={`${
+                !hasFontSelected ? "opacity-50 pointer-events-none" : ""
+              }`}
             >
-              <FolderTabsList className="pl-4">
-                <FolderTabsTrigger
-                  className="uppercase"
-                  value="auto"
-                  icon={<Zap className="size-3" />}
-                >
-                  Auto
-                </FolderTabsTrigger>
-                <FolderTabsTrigger
-                  className="uppercase"
-                  value="manual"
-                  icon={<Sliders className="size-3" />}
-                >
-                  Manual
-                </FolderTabsTrigger>
-              </FolderTabsList>
+              <FolderTabs
+                value={state.scalingMode}
+                onValueChange={
+                  hasFontSelected ? handleScalingModeChange : undefined
+                }
+              >
+                <FolderTabsList className="pl-4">
+                  <FolderTabsTrigger
+                    className="uppercase"
+                    value="auto"
+                    icon={<Zap className="size-3" />}
+                    disabled={!hasFontSelected}
+                  >
+                    Auto
+                  </FolderTabsTrigger>
+                  <FolderTabsTrigger
+                    className="uppercase"
+                    value="manual"
+                    icon={<Sliders className="size-3" />}
+                    disabled={!hasFontSelected}
+                  >
+                    Manual
+                  </FolderTabsTrigger>
+                </FolderTabsList>
 
-              <FolderTabsContent value="auto">
-                <div className="p-4 space-y-6">
-                  {/* Styles Selection */}
-                  <FormField label="Styles">
-                    <StylesSelector
-                      selectedStyles={state.config.styles}
-                      availableStyles={availableStyles}
-                      isOpen={state.popoverStates.styles}
-                      onOpenChange={(open) => setPopover("styles", open)}
-                      onToggleStyle={toggleStyle}
-                      onSetAllStyles={setAllStyles}
-                      error={currentErrors.styles}
+                <FolderTabsContent value="auto">
+                  <div className="p-4 space-y-6">
+                    {/* Styles Selection */}
+                    <FormField label="Styles">
+                      <StylesSelector
+                        selectedStyles={state.config.styles}
+                        availableStyles={availableStyles}
+                        isOpen={state.popoverStates.styles}
+                        onOpenChange={(open) => setPopover("styles", open)}
+                        onToggleStyle={toggleStyle}
+                        onSetAllStyles={setAllStyles}
+                        error={currentErrors.styles}
+                      />
+                    </FormField>
+
+                    {/* Typography Settings */}
+                    <TypographySettings
+                      lineHeight={state.config.lineHeight!}
+                      letterSpacing={state.config.letterSpacing!}
+                      scaleRatio={state.config.scaleRatio!}
+                      onLineHeightChange={(value) => {
+                        setConfig({ lineHeight: value });
+                      }}
+                      onLetterSpacingChange={(value) => {
+                        setConfig({ letterSpacing: value });
+                      }}
+                      onScaleRatioChange={(value) => {
+                        setConfig({ scaleRatio: value });
+                      }}
+                      ratioOptions={SCALE_RATIO_OPTIONS}
+                      isRatioOpen={state.popoverStates.ratio}
+                      onRatioOpenChange={(open) => setPopover("ratio", open)}
+                      errors={currentErrors}
                     />
-                  </FormField>
+                  </div>
+                </FolderTabsContent>
 
-                  {/* Typography Settings */}
-                  <TypographySettings
-                    lineHeight={state.config.lineHeight!}
-                    letterSpacing={state.config.letterSpacing!}
-                    scaleRatio={state.config.scaleRatio!}
-                    onLineHeightChange={(value) => {
-                      setConfig({ lineHeight: value });
-                    }}
-                    onLetterSpacingChange={(value) => {
-                      setConfig({ letterSpacing: value });
-                    }}
-                    onScaleRatioChange={(value) => {
-                      setConfig({ scaleRatio: value });
-                    }}
-                    ratioOptions={SCALE_RATIO_OPTIONS}
-                    isRatioOpen={state.popoverStates.ratio}
-                    onRatioOpenChange={(open) => setPopover("ratio", open)}
-                    errors={currentErrors}
+                <FolderTabsContent value="manual">
+                  <ManualSizesSection
+                    sizes={state.config.manualSizes || []}
+                    availableStyles={availableStyles}
+                    onSizesChange={(sizes) => setConfig({ manualSizes: sizes })}
+                    onAddSize={() =>
+                      addManualSize(
+                        availableStyles,
+                        state.config.scaleRatio || 1.2
+                      )
+                    }
+                    onRemoveSize={removeManualSize}
+                    onUpdateSize={updateManualSize}
+                    error={currentErrors.manualSizes}
                   />
-                </div>
-              </FolderTabsContent>
-
-              <FolderTabsContent value="manual">
-                <ManualSizesSection
-                  sizes={state.config.manualSizes || []}
-                  availableStyles={availableStyles}
-                  onSizesChange={(sizes) => setConfig({ manualSizes: sizes })}
-                  onAddSize={() =>
-                    addManualSize(
-                      availableStyles,
-                      state.config.scaleRatio || 1.2
-                    )
-                  }
-                  onRemoveSize={removeManualSize}
-                  onUpdateSize={updateManualSize}
-                  error={currentErrors.manualSizes}
-                />
-              </FolderTabsContent>
-            </FolderTabs>
+                </FolderTabsContent>
+              </FolderTabs>
+            </div>
           </FormField>
         </div>
       </Accordion.Content>

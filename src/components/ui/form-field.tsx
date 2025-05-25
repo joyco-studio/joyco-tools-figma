@@ -6,6 +6,7 @@ import { Label } from "./label";
 const formFieldVariants = cva("", {
   variants: {
     size: {
+      sm: "space-y-1.5",
       default: "space-y-2",
       lg: "space-y-3",
     },

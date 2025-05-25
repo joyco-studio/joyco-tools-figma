@@ -17,6 +17,8 @@ export function ManualSizesSection({
   onSizesChange,
   error,
 }: ManualSizesSectionProps) {
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+
   return (
     <div className="space-y-1">
       <ManualSizes
@@ -24,8 +26,10 @@ export function ManualSizesSection({
         onSizesChange={onSizesChange}
         availableStyles={availableStyles}
         defaultRatio={1.2}
+        editingId={editingId}
+        onEditingIdChange={setEditingId}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && !editingId && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }
