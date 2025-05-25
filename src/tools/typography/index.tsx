@@ -59,6 +59,8 @@ export function Typography() {
       return newMap;
     });
     setOpenItems((prev) => prev.filter((itemId) => itemId !== id));
+    // Clean up callback reference
+    configCallbacks.current.delete(id);
   }, []);
 
   const handleConfigurationChange = React.useCallback(
@@ -70,6 +72,26 @@ export function Typography() {
       });
     },
     []
+  );
+
+  // Store stable callbacks for each style
+  const configCallbacks = React.useRef<
+    Map<string, (config: any, isValid: boolean) => void>
+  >(new Map());
+
+  const getConfigCallback = React.useCallback(
+    (styleId: string) => {
+      if (!configCallbacks.current.has(styleId)) {
+        configCallbacks.current.set(
+          styleId,
+          (config: any, isValid: boolean) => {
+            handleConfigurationChange(styleId, config, isValid);
+          }
+        );
+      }
+      return configCallbacks.current.get(styleId)!;
+    },
+    [handleConfigurationChange]
   );
 
   // Check if all styles are valid and we have at least one style
@@ -153,9 +175,7 @@ export function Typography() {
                 styleId={style.id}
                 mode="edit"
                 onDelete={() => handleDeleteStyle(style.id)}
-                onConfigurationChange={(config, isValid) =>
-                  handleConfigurationChange(style.id, config, isValid)
-                }
+                onConfigurationChange={getConfigCallback(style.id)}
               />
             ))}
           </Accordion.Root>
