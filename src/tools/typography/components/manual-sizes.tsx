@@ -142,7 +142,7 @@ export function ManualSizes({
   };
 
   return (
-    <div className={`border-t border-border ${className || ""}`}>
+    <div className={cn(className)}>
       <div className="p-4">
         <FormField label="Manual Sizes">
           <div className="space-y-3">

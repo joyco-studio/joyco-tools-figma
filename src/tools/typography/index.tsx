@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
+import * as Accordion from "@radix-ui/react-accordion";
 import { TextStyle } from "./components/text-style";
 import { useFontsStore, useVariablesStore } from "../../stores/fonts";
 import { pluginApi } from "../../api";
@@ -32,51 +33,44 @@ export function Typography() {
   >(new Map());
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [openItems, setOpenItems] = React.useState<string[]>([]);
 
   // Use the global fonts and variables stores
   const { fonts, isLoading: fontsLoading } = useFontsStore();
   const { variables, isLoading: variablesLoading } = useVariablesStore();
 
-  const handleAddStyle = (style: Omit<TextStyleData, "id">) => {
+  const handleAddStyle = React.useCallback(() => {
     const newStyle: TextStyleData = {
       id: generateId(),
-      ...style,
+      name: "New Style",
+      fontName: { family: "", style: "" },
     };
-    setStyles([...styles, newStyle]);
-  };
+    setStyles((prev) => [...prev, newStyle]);
+    // Open the new item by default
+    setOpenItems((prev) => [...prev, newStyle.id]);
+  }, []);
 
-  const handleUpdateStyle = (
-    id: string,
-    updatedStyle: Omit<TextStyleData, "id">
-  ) => {
-    setStyles((prevStyles) =>
-      prevStyles.map((style) =>
-        style.id === id ? { ...style, ...updatedStyle } : style
-      )
-    );
-  };
-
-  const handleDeleteStyle = (id: string) => {
+  const handleDeleteStyle = React.useCallback((id: string) => {
     setStyles((prevStyles) => prevStyles.filter((style) => style.id !== id));
-    // Also remove the configuration
+    // Also remove the configuration and from open items
     setStyleConfigurations((prev) => {
       const newMap = new Map(prev);
       newMap.delete(id);
       return newMap;
     });
-  };
+    setOpenItems((prev) => prev.filter((itemId) => itemId !== id));
+  }, []);
 
-  const handleConfigurationChange = (
-    id: string,
-    config: any,
-    isValid: boolean
-  ) => {
-    setStyleConfigurations((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(id, { id, config, isValid });
-      return newMap;
-    });
-  };
+  const handleConfigurationChange = React.useCallback(
+    (id: string, config: any, isValid: boolean) => {
+      setStyleConfigurations((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(id, { id, config, isValid });
+        return newMap;
+      });
+    },
+    []
+  );
 
   // Check if all styles are valid and we have at least one style
   const canGenerate = React.useMemo(() => {
@@ -147,29 +141,28 @@ export function Typography() {
       <div className="flex-1 p-4 overflow-auto">
         {/* List of text styles */}
         <div className="space-y-4">
-          {styles.map((style) => (
-            <TextStyle
-              key={style.id}
-              mode="edit"
-              currentFont={style.fontName}
-              onChange={(updatedStyle) =>
-                handleUpdateStyle(style.id, updatedStyle)
-              }
-              onDelete={() => handleDeleteStyle(style.id)}
-              onConfigurationChange={(config, isValid) =>
-                handleConfigurationChange(style.id, config, isValid)
-              }
-            />
-          ))}
+          <Accordion.Root
+            type="multiple"
+            className="space-y-4"
+            value={openItems}
+            onValueChange={setOpenItems}
+          >
+            {styles.map((style) => (
+              <TextStyle
+                key={style.id}
+                styleId={style.id}
+                mode="edit"
+                onDelete={() => handleDeleteStyle(style.id)}
+                onConfigurationChange={(config, isValid) =>
+                  handleConfigurationChange(style.id, config, isValid)
+                }
+              />
+            ))}
+          </Accordion.Root>
 
           {/* Add new style */}
           <button
-            onClick={() => {
-              handleAddStyle({
-                name: "New Style",
-                fontName: { family: "Arial", style: "Regular" },
-              });
-            }}
+            onClick={handleAddStyle}
             className="flex items-center justify-center w-full gap-3 p-6 text-sm italic font-normal transition-colors border border-dashed rounded-lg cursor-default text-muted-foreground bg-foreground/5 border-muted-foreground/25 hover:border-muted-foreground/50"
           >
             <PlusIcon className="w-4 h-4" />

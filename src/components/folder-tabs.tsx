@@ -49,7 +49,7 @@ export const FolderTabsList = React.forwardRef<
       <TabsList
         ref={ref}
         className={cn(
-          "before:bg-border relative mb-3 h-auto w-full gap-2 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px justify-start",
+          "before:bg-border relative h-auto w-full gap-2 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px justify-start",
           className
         )}
         {...props}
@@ -91,7 +91,7 @@ export const FolderTabsContent = React.forwardRef<
   React.ElementRef<typeof TabsContent>,
   FolderTabsContentProps
 >(({ className, ...props }, ref) => {
-  return <TabsContent ref={ref} className="mt-4" {...props} />;
+  return <TabsContent ref={ref} className={cn(className)} {...props} />;
 });
 
 FolderTabs.displayName = "FolderTabs";

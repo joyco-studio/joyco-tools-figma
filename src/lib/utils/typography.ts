@@ -109,8 +109,17 @@ export function validateTypographyConfig(
     errors.fontFamily = "Font family is required";
   }
 
-  // Styles validation (only in auto mode)
-  if (scalingMode === "auto" && config.styles.length === 0) {
+  // Only validate styles if a font is selected and styles are available
+  const hasFontSelected =
+    config.fontSource === "variable" || config.fontFamily?.trim();
+
+  // Styles validation (only in auto mode and when font is selected)
+  if (
+    scalingMode === "auto" &&
+    hasFontSelected &&
+    availableStyles.length > 0 &&
+    config.styles.length === 0
+  ) {
     errors.styles = "At least one style must be selected";
   }
 
@@ -137,8 +146,12 @@ export function validateTypographyConfig(
     }
   }
 
-  // Manual mode validations
-  if (scalingMode === "manual" && config.manualSizes) {
+  // Manual mode validations - only validate if there are available styles
+  if (
+    scalingMode === "manual" &&
+    config.manualSizes &&
+    availableStyles.length > 0
+  ) {
     const hasInvalidSize = config.manualSizes.some(
       (size) =>
         !size.name.trim() ||

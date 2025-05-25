@@ -23,9 +23,7 @@ interface TypographyState {
   scalingMode: ScalingMode;
   selectedVariable: Variable | null;
   searchQuery: string;
-  isExpanded: boolean;
   isEditingName: boolean;
-  errors: ValidationErrors;
   popoverStates: {
     fonts: boolean;
     styles: boolean;
@@ -38,10 +36,7 @@ type TypographyAction =
   | { type: "SET_SCALING_MODE"; payload: ScalingMode }
   | { type: "SET_VARIABLE"; payload: Variable | null }
   | { type: "SET_SEARCH_QUERY"; payload: string }
-  | { type: "SET_EXPANDED"; payload: boolean }
   | { type: "SET_EDITING_NAME"; payload: boolean }
-  | { type: "SET_ERRORS"; payload: ValidationErrors }
-  | { type: "CLEAR_ERROR"; payload: keyof ValidationErrors }
   | {
       type: "SET_POPOVER";
       payload: { key: keyof TypographyState["popoverStates"]; value: boolean };
@@ -67,9 +62,7 @@ const initialState: TypographyState = {
   scalingMode: "auto",
   selectedVariable: null,
   searchQuery: "",
-  isExpanded: true,
   isEditingName: false,
-  errors: INITIAL_VALIDATION_ERRORS,
   popoverStates: {
     fonts: false,
     styles: false,
@@ -112,20 +105,8 @@ function typographyReducer(
     case "SET_SEARCH_QUERY":
       return { ...state, searchQuery: action.payload };
 
-    case "SET_EXPANDED":
-      return { ...state, isExpanded: action.payload };
-
     case "SET_EDITING_NAME":
       return { ...state, isEditingName: action.payload };
-
-    case "SET_ERRORS":
-      return { ...state, errors: action.payload };
-
-    case "CLEAR_ERROR":
-      return {
-        ...state,
-        errors: { ...state.errors, [action.payload]: undefined },
-      };
 
     case "SET_POPOVER":
       return {
@@ -202,80 +183,108 @@ function typographyReducer(
 export function useTypographyState() {
   const [state, dispatch] = useReducer(typographyReducer, initialState);
 
-  const actions = useMemo(
-    () => ({
-      setConfig: (payload: Partial<TypographyConfig>) =>
-        dispatch({ type: "SET_CONFIG", payload }),
-
-      setScalingMode: (mode: ScalingMode) =>
-        dispatch({ type: "SET_SCALING_MODE", payload: mode }),
-
-      setVariable: (variable: Variable | null) =>
-        dispatch({ type: "SET_VARIABLE", payload: variable }),
-
-      setSearchQuery: (query: string) =>
-        dispatch({ type: "SET_SEARCH_QUERY", payload: query }),
-
-      setExpanded: (expanded: boolean) =>
-        dispatch({ type: "SET_EXPANDED", payload: expanded }),
-
-      setEditingName: (editing: boolean) =>
-        dispatch({ type: "SET_EDITING_NAME", payload: editing }),
-
-      setErrors: (errors: ValidationErrors) =>
-        dispatch({ type: "SET_ERRORS", payload: errors }),
-
-      clearError: (field: keyof ValidationErrors) =>
-        dispatch({ type: "CLEAR_ERROR", payload: field }),
-
-      setPopover: (
-        key: keyof TypographyState["popoverStates"],
-        value: boolean
-      ) => dispatch({ type: "SET_POPOVER", payload: { key, value } }),
-
-      addManualSize: (availableStyles: string[], defaultRatio: number) =>
-        dispatch({
-          type: "ADD_MANUAL_SIZE",
-          payload: { availableStyles, defaultRatio },
-        }),
-
-      removeManualSize: (id: string) =>
-        dispatch({ type: "REMOVE_MANUAL_SIZE", payload: id }),
-
-      updateManualSize: (id: string, field: keyof SizeEntry, value: any) =>
-        dispatch({ type: "UPDATE_MANUAL_SIZE", payload: { id, field, value } }),
-
-      toggleStyle: (style: string) =>
-        dispatch({ type: "TOGGLE_STYLE", payload: style }),
-
-      setAllStyles: (styles: string[]) =>
-        dispatch({ type: "SET_ALL_STYLES", payload: styles }),
-
-      reset: () => dispatch({ type: "RESET" }),
-    }),
+  // Stable action creators using individual useCallbacks with empty deps
+  const setConfig = useCallback(
+    (payload: Partial<TypographyConfig>) =>
+      dispatch({ type: "SET_CONFIG", payload }),
     []
   );
 
-  const validate = useCallback(
-    (availableStyles: string[]) => {
-      const errors = validateTypographyConfig(
-        state.config,
-        state.scalingMode,
-        availableStyles
-      );
-      actions.setErrors(errors);
-      return Object.keys(errors).length === 0;
-    },
-    [state.config, state.scalingMode, actions]
+  const setScalingMode = useCallback(
+    (mode: ScalingMode) =>
+      dispatch({ type: "SET_SCALING_MODE", payload: mode }),
+    []
+  );
+
+  const setVariable = useCallback(
+    (variable: Variable | null) =>
+      dispatch({ type: "SET_VARIABLE", payload: variable }),
+    []
+  );
+
+  const setSearchQuery = useCallback(
+    (query: string) => dispatch({ type: "SET_SEARCH_QUERY", payload: query }),
+    []
+  );
+
+  const setEditingName = useCallback(
+    (editing: boolean) =>
+      dispatch({ type: "SET_EDITING_NAME", payload: editing }),
+    []
+  );
+
+  const setPopover = useCallback(
+    (key: keyof TypographyState["popoverStates"], value: boolean) =>
+      dispatch({ type: "SET_POPOVER", payload: { key, value } }),
+    []
+  );
+
+  const addManualSize = useCallback(
+    (availableStyles: string[], defaultRatio: number) =>
+      dispatch({
+        type: "ADD_MANUAL_SIZE",
+        payload: { availableStyles, defaultRatio },
+      }),
+    []
+  );
+
+  const removeManualSize = useCallback(
+    (id: string) => dispatch({ type: "REMOVE_MANUAL_SIZE", payload: id }),
+    []
+  );
+
+  const updateManualSize = useCallback(
+    (id: string, field: keyof SizeEntry, value: any) =>
+      dispatch({ type: "UPDATE_MANUAL_SIZE", payload: { id, field, value } }),
+    []
+  );
+
+  const toggleStyle = useCallback(
+    (style: string) => dispatch({ type: "TOGGLE_STYLE", payload: style }),
+    []
+  );
+
+  const setAllStyles = useCallback(
+    (styles: string[]) => dispatch({ type: "SET_ALL_STYLES", payload: styles }),
+    []
+  );
+
+  const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+
+  // Stable actions object using useMemo with stable dependencies
+  const actions = useMemo(
+    () => ({
+      setConfig,
+      setScalingMode,
+      setVariable,
+      setSearchQuery,
+      setEditingName,
+      setPopover,
+      addManualSize,
+      removeManualSize,
+      updateManualSize,
+      toggleStyle,
+      setAllStyles,
+      reset,
+    }),
+    [
+      setConfig,
+      setScalingMode,
+      setVariable,
+      setSearchQuery,
+      setEditingName,
+      setPopover,
+      addManualSize,
+      removeManualSize,
+      updateManualSize,
+      toggleStyle,
+      setAllStyles,
+      reset,
+    ]
   );
 
   return {
     state,
     actions,
-    validate,
-    isValid: useMemo(
-      () => Object.keys(state.errors).length === 0,
-      [state.errors]
-    ),
   };
 }

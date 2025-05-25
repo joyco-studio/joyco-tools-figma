@@ -45,11 +45,7 @@ export interface ValidationErrors {
 }
 
 export interface TextStyleProps {
-  currentFont?: { family: string; style: string };
-  onChange?: (style: {
-    name: string;
-    fontName: { family: string; style: string };
-  }) => void;
+  styleId: string;
   onDelete?: () => void;
   mode: "add" | "edit";
   onConfigurationChange?: (config: TypographyConfig, isValid: boolean) => void;
