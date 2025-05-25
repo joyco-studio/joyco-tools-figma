@@ -44,7 +44,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
   return (
-    <Sidebar collapsible="none" className="w-64 border-r">
+    <Sidebar collapsible="none" className="w-64 border-r bg-muted/50">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

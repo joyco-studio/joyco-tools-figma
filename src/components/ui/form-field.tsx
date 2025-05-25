@@ -1,27 +1,56 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 import { Label } from "./label";
 
-export interface FormFieldProps {
+const formFieldVariants = cva("", {
+  variants: {
+    size: {
+      default: "space-y-2",
+      lg: "space-y-3",
+    },
+  },
+  defaultVariants: {
+    size: "default",
+  },
+});
+
+export interface FormFieldProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof formFieldVariants> {
   label: string;
   htmlFor?: string;
-  className?: string;
   disabled?: boolean;
+  labelClassName?: string;
   children: React.ReactNode;
 }
 
 const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
-  ({ label, htmlFor, className, disabled, children, ...props }, ref) => (
+  (
+    {
+      label,
+      htmlFor,
+      className,
+      disabled,
+      size,
+      labelClassName,
+      children,
+      ...props
+    },
+    ref
+  ) => (
     <div
       ref={ref}
       className={cn(
-        "space-y-2",
+        formFieldVariants({ size }),
         disabled && "opacity-40 pointer-events-none",
         className
       )}
       {...props}
     >
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor} size={size} className={labelClassName}>
+        {label}
+      </Label>
       {children}
     </div>
   )

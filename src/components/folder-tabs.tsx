@@ -1,6 +1,7 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export interface FolderTabsProps {
   value: string;
@@ -10,170 +11,90 @@ export interface FolderTabsProps {
 }
 
 export interface FolderTabsListProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-}
+  extends React.ComponentProps<typeof TabsList> {}
 
 export interface FolderTabsTriggerProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  value: string;
-  children: React.ReactNode;
+  extends React.ComponentProps<typeof TabsTrigger> {
   icon?: React.ReactNode;
-  description?: string;
 }
 
 export interface FolderTabsContentProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  value: string;
-  children: React.ReactNode;
-}
+  extends React.ComponentProps<typeof TabsContent> {}
 
-const FolderTabsContext = React.createContext<{
-  value: string;
-  onValueChange: (value: string) => void;
-} | null>(null);
+// Main FolderTabs wrapper
+export const FolderTabs = React.forwardRef<
+  React.ElementRef<typeof Tabs>,
+  FolderTabsProps
+>(({ value, onValueChange, children, className, ...props }, ref) => {
+  return (
+    <Tabs
+      ref={ref}
+      value={value}
+      onValueChange={onValueChange}
+      className={className}
+      {...props}
+    >
+      {children}
+    </Tabs>
+  );
+});
 
-const useFolderTabsContext = () => {
-  const context = React.useContext(FolderTabsContext);
-  if (!context) {
-    throw new Error("FolderTabs components must be used within FolderTabs");
-  }
-  return context;
-};
-
-const FolderTabs = React.forwardRef<HTMLDivElement, FolderTabsProps>(
-  ({ value, onValueChange, children, className, ...props }, ref) => {
-    return (
-      <FolderTabsContext.Provider value={{ value, onValueChange }}>
-        <div ref={ref} className={cn("w-full", className)} {...props}>
-          {children}
-        </div>
-      </FolderTabsContext.Provider>
-    );
-  }
-);
-
-const FolderTabsList = React.forwardRef<HTMLDivElement, FolderTabsListProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <ScrollArea>
-        <div
-          ref={ref}
-          className={cn(
-            "before:bg-border relative mb-3 h-auto w-full gap-0.5 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px",
-            "flex",
-            className
-          )}
-          {...props}
-        >
-          {children}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-    );
-  }
-);
-
-const FolderTabsTrigger = React.forwardRef<
-  HTMLButtonElement,
-  FolderTabsTriggerProps
->(
-  (
-    { value: triggerValue, children, icon, description, className, ...props },
-    ref
-  ) => {
-    const { value, onValueChange } = useFolderTabsContext();
-    const isActive = value === triggerValue;
-
-    return (
-      <button
+// FolderTabsList with scroll area and folder styling
+export const FolderTabsList = React.forwardRef<
+  React.ElementRef<typeof TabsList>,
+  FolderTabsListProps
+>(({ className, children, ...props }, ref) => {
+  return (
+    <ScrollArea>
+      <TabsList
         ref={ref}
-        type="button"
-        onClick={() => onValueChange(triggerValue)}
         className={cn(
-          "bg-muted overflow-hidden rounded-b-none border-x border-t py-3 px-4",
-          "transition-all duration-200 cursor-pointer flex-1",
-          "hover:bg-muted/80",
-          isActive &&
-            "z-10 shadow-none bg-background border-b border-b-background",
-          !isActive && "border-b-0",
-          "first:rounded-tl-md last:rounded-tr-md",
-          "first:border-l last:border-r",
-          "[&:not(:first-child)]:border-l-0",
+          "before:bg-border relative mb-3 h-auto w-full gap-2 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px justify-start",
           className
         )}
-        data-state={isActive ? "active" : "inactive"}
         {...props}
       >
-        <div className="flex flex-col items-center gap-2 text-center">
-          {icon && <div className="text-lg">{icon}</div>}
-          <div>
-            <div className="text-sm font-medium">{children}</div>
-            {description && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {description}
-              </div>
-            )}
-          </div>
-        </div>
-      </button>
-    );
-  }
-);
-
-const FolderTabsContent = React.forwardRef<
-  HTMLDivElement,
-  FolderTabsContentProps
->(({ value: contentValue, children, className, ...props }, ref) => {
-  const { value } = useFolderTabsContext();
-  const isActive = value === contentValue;
-
-  if (!isActive) return null;
-
-  return (
-    <div ref={ref} className={cn("mt-4", className)} {...props}>
-      {children}
-    </div>
+        {children}
+      </TabsList>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
+});
+
+// FolderTabsTrigger with folder tab styling
+export const FolderTabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsTrigger>,
+  FolderTabsTriggerProps
+>(({ icon, children, className, ...props }, ref) => {
+  return (
+    <TabsTrigger
+      ref={ref}
+      className={cn(
+        "bg-muted overflow-hidden rounded-b-none border-x border-t py-2 data-[state=active]:z-10 data-[state=active]:shadow-none",
+        className
+      )}
+      {...props}
+    >
+      {icon &&
+        React.cloneElement(icon as React.ReactElement, {
+          className: "-ms-0.5 me-1.5 opacity-60",
+          size: 16,
+          "aria-hidden": "true",
+        })}
+      {children}
+    </TabsTrigger>
+  );
+});
+
+// FolderTabsContent is just the standard TabsContent
+export const FolderTabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsContent>,
+  FolderTabsContentProps
+>(({ className, ...props }, ref) => {
+  return <TabsContent ref={ref} className="mt-4" {...props} />;
 });
 
 FolderTabs.displayName = "FolderTabs";
 FolderTabsList.displayName = "FolderTabsList";
 FolderTabsTrigger.displayName = "FolderTabsTrigger";
 FolderTabsContent.displayName = "FolderTabsContent";
-
-export { FolderTabs, FolderTabsList, FolderTabsTrigger, FolderTabsContent };
-
-// Legacy default export for backward compatibility
-export default function LegacyFolderTabs() {
-  return (
-    <FolderTabs value="tab-1" onValueChange={() => {}}>
-      <FolderTabsList>
-        <FolderTabsTrigger value="tab-1" icon={<div>🏠</div>}>
-          Overview
-        </FolderTabsTrigger>
-        <FolderTabsTrigger value="tab-2" icon={<div>📁</div>}>
-          Projects
-        </FolderTabsTrigger>
-        <FolderTabsTrigger value="tab-3" icon={<div>📦</div>}>
-          Packages
-        </FolderTabsTrigger>
-      </FolderTabsList>
-      <FolderTabsContent value="tab-1">
-        <p className="p-4 pt-1 text-xs text-center text-muted-foreground">
-          Content for Tab 1
-        </p>
-      </FolderTabsContent>
-      <FolderTabsContent value="tab-2">
-        <p className="p-4 pt-1 text-xs text-center text-muted-foreground">
-          Content for Tab 2
-        </p>
-      </FolderTabsContent>
-      <FolderTabsContent value="tab-3">
-        <p className="p-4 pt-1 text-xs text-center text-muted-foreground">
-          Content for Tab 3
-        </p>
-      </FolderTabsContent>
-    </FolderTabs>
-  );
-}

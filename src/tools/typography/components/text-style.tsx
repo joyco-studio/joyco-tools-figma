@@ -1,5 +1,13 @@
 import * as React from "react";
-import { Type, Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Type,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  Sliders,
+} from "lucide-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -17,10 +25,6 @@ import { FontSelector } from "./font-selector";
 import { StylesSelector } from "./styles-selector";
 import { TypographySettings } from "./typography-settings";
 import { ManualSizesSection } from "./manual-sizes-section";
-
-// Icons
-import { AutoIcon } from "../../../components/icons/auto-icon";
-import { ManualIcon } from "../../../components/icons/manual-icon";
 
 // Types and hooks
 import type { TextStyleProps } from "../../../lib/types/typography";
@@ -161,7 +165,7 @@ export function TextStyle({
   return (
     <div className="w-full transition-colors border rounded-lg border-muted-foreground/25 hover:border-muted-foreground/50">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-4 py-1 pr-1 border-b border-border">
+      <div className="flex items-center justify-between gap-2 px-4 py-1 pr-1">
         <div className="flex items-center flex-1 gap-2">
           <div className="flex items-center gap-1 text-muted-foreground">
             <Type className="size-3" />
@@ -222,9 +226,9 @@ export function TextStyle({
 
       {/* Content */}
       {state.isExpanded && (
-        <div className="flex flex-col gap-6 px-4 py-6">
+        <div className="flex flex-col gap-6 border-t border-border">
           {/* Font Selection */}
-          <FormField label="Font Family">
+          <FormField className="px-4 py-6" label="Font Family">
             <FontSelector
               value={state.config.fontFamily || ""}
               selectedVariable={state.selectedVariable}
@@ -241,32 +245,32 @@ export function TextStyle({
           </FormField>
 
           {/* Scaling Mode */}
-          <FormField label="Scaling Mode">
+          <FormField labelClassName="ml-4" size="lg" label="Scaling Mode">
             <FolderTabs
               value={state.scalingMode}
               onValueChange={(value) =>
                 actions.setScalingMode(value as "auto" | "manual")
               }
             >
-              <FolderTabsList>
+              <FolderTabsList className="pl-4">
                 <FolderTabsTrigger
+                  className="uppercase"
                   value="auto"
-                  icon={<AutoIcon />}
-                  description="Generate sizes automatically with consistent scaling ratios"
+                  icon={<Zap className="size-3" />}
                 >
                   Auto
                 </FolderTabsTrigger>
                 <FolderTabsTrigger
+                  className="uppercase"
                   value="manual"
-                  icon={<ManualIcon />}
-                  description="Define each size individually with custom properties"
+                  icon={<Sliders className="size-3" />}
                 >
                   Manual
                 </FolderTabsTrigger>
               </FolderTabsList>
 
               <FolderTabsContent value="auto">
-                <div className="space-y-6">
+                <div className="p-4 space-y-6">
                   {/* Styles Selection */}
                   <FormField label="Styles">
                     <StylesSelector
