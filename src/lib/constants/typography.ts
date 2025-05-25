@@ -42,8 +42,12 @@ export const INITIAL_TYPOGRAPHY_STATE: TypographyConfig = {
   fontSource: "type",
   fontFamily: "",
   styles: [],
+  initialSize: 12,
+  steps: 9,
   lineHeight: 1.4,
   letterSpacing: 0,
+  lineHeightVariable: null,
+  letterSpacingVariable: null,
   isManualScale: false,
   scaleRatio: 1.2,
   manualSizes: [],
@@ -56,6 +60,8 @@ export const INITIAL_MANUAL_SIZE: Omit<SizeEntry, "id"> = {
   letterSpacing: 0,
   styles: [],
   sizeVariable: null,
+  lineHeightVariable: null,
+  letterSpacingVariable: null,
 };
 
 export const INITIAL_VALIDATION_ERRORS: ValidationErrors = {};

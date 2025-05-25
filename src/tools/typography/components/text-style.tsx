@@ -23,7 +23,6 @@ import {
 // Custom components
 import { AutoResizeInput } from "./auto-resize-input";
 import { FontSelector } from "./font-selector";
-import { StylesSelector } from "./styles-selector";
 import { TypographySettings } from "./typography-settings";
 import { ManualSizesSection } from "./manual-sizes-section";
 
@@ -325,93 +324,100 @@ export function TextStyle({
           </FormField>
 
           {/* Scaling Mode */}
-          <FormField labelClassName="ml-4" size="lg" label="Scaling Mode">
-            <div
-              className={`${
-                !hasFontSelected ? "opacity-50 pointer-events-none" : ""
-              }`}
+          <div
+            className={`${
+              !hasFontSelected ? "opacity-50 pointer-events-none" : ""
+            }`}
+          >
+            <FolderTabs
+              value={state.scalingMode}
+              onValueChange={
+                hasFontSelected ? handleScalingModeChange : undefined
+              }
             >
-              <FolderTabs
-                value={state.scalingMode}
-                onValueChange={
-                  hasFontSelected ? handleScalingModeChange : undefined
-                }
-              >
-                <FolderTabsList className="pl-4">
-                  <FolderTabsTrigger
-                    className="uppercase"
-                    value="auto"
-                    icon={<Zap className="size-3" />}
-                    disabled={!hasFontSelected}
-                  >
-                    Auto
-                  </FolderTabsTrigger>
-                  <FolderTabsTrigger
-                    className="uppercase"
-                    value="manual"
-                    icon={<Sliders className="size-3" />}
-                    disabled={!hasFontSelected}
-                  >
-                    Manual
-                  </FolderTabsTrigger>
-                </FolderTabsList>
+              <FolderTabsList className="pl-4">
+                <FolderTabsTrigger
+                  className="uppercase"
+                  value="auto"
+                  icon={<Zap className="size-3" />}
+                  disabled={!hasFontSelected}
+                >
+                  Auto
+                </FolderTabsTrigger>
+                <FolderTabsTrigger
+                  className="uppercase"
+                  value="manual"
+                  icon={<Sliders className="size-3" />}
+                  disabled={!hasFontSelected}
+                >
+                  Manual
+                </FolderTabsTrigger>
+              </FolderTabsList>
 
-                <FolderTabsContent value="auto">
-                  <div className="p-4 space-y-6">
-                    {/* Styles Selection */}
-                    <FormField label="Styles">
-                      <StylesSelector
-                        selectedStyles={state.config.styles}
-                        availableStyles={availableStyles}
-                        isOpen={state.popoverStates.styles}
-                        onOpenChange={(open) => setPopover("styles", open)}
-                        onToggleStyle={toggleStyle}
-                        onSetAllStyles={setAllStyles}
-                        error={currentErrors.styles}
-                      />
-                    </FormField>
-
-                    {/* Typography Settings */}
-                    <TypographySettings
-                      lineHeight={state.config.lineHeight!}
-                      letterSpacing={state.config.letterSpacing!}
-                      scaleRatio={state.config.scaleRatio!}
-                      onLineHeightChange={(value) => {
-                        setConfig({ lineHeight: value });
-                      }}
-                      onLetterSpacingChange={(value) => {
-                        setConfig({ letterSpacing: value });
-                      }}
-                      onScaleRatioChange={(value) => {
-                        setConfig({ scaleRatio: value });
-                      }}
-                      ratioOptions={SCALE_RATIO_OPTIONS}
-                      isRatioOpen={state.popoverStates.ratio}
-                      onRatioOpenChange={(open) => setPopover("ratio", open)}
-                      errors={currentErrors}
-                    />
-                  </div>
-                </FolderTabsContent>
-
-                <FolderTabsContent value="manual">
-                  <ManualSizesSection
-                    sizes={state.config.manualSizes || []}
+              <FolderTabsContent value="auto">
+                <div className="p-4 space-y-6">
+                  {/* Typography Settings with new grid layout */}
+                  <TypographySettings
+                    initialSize={state.config.initialSize || 12}
+                    steps={state.config.steps || 9}
+                    lineHeight={state.config.lineHeight!}
+                    letterSpacing={state.config.letterSpacing!}
+                    scaleRatio={state.config.scaleRatio!}
+                    selectedStyles={state.config.styles}
                     availableStyles={availableStyles}
-                    onSizesChange={(sizes) => setConfig({ manualSizes: sizes })}
-                    onAddSize={() =>
-                      addManualSize(
-                        availableStyles,
-                        state.config.scaleRatio || 1.2
-                      )
-                    }
-                    onRemoveSize={removeManualSize}
-                    onUpdateSize={updateManualSize}
-                    error={currentErrors.manualSizes}
+                    lineHeightVariable={state.config.lineHeightVariable}
+                    letterSpacingVariable={state.config.letterSpacingVariable}
+                    onInitialSizeChange={(value) => {
+                      setConfig({ initialSize: value });
+                    }}
+                    onStepsChange={(value) => {
+                      setConfig({ steps: value });
+                    }}
+                    onLineHeightChange={(value) => {
+                      setConfig({ lineHeight: value });
+                    }}
+                    onLetterSpacingChange={(value) => {
+                      setConfig({ letterSpacing: value });
+                    }}
+                    onScaleRatioChange={(value) => {
+                      setConfig({ scaleRatio: value });
+                    }}
+                    onToggleStyle={toggleStyle}
+                    onSetAllStyles={setAllStyles}
+                    onLineHeightVariableSelect={(variable) => {
+                      setConfig({ lineHeightVariable: variable });
+                    }}
+                    onLetterSpacingVariableSelect={(variable) => {
+                      setConfig({ letterSpacingVariable: variable });
+                    }}
+                    ratioOptions={SCALE_RATIO_OPTIONS}
+                    isRatioOpen={state.popoverStates.ratio}
+                    onRatioOpenChange={(open) => setPopover("ratio", open)}
+                    isStylesOpen={state.popoverStates.styles}
+                    onStylesOpenChange={(open) => setPopover("styles", open)}
+                    errors={currentErrors}
                   />
-                </FolderTabsContent>
-              </FolderTabs>
-            </div>
-          </FormField>
+                </div>
+              </FolderTabsContent>
+
+              <FolderTabsContent value="manual">
+                <ManualSizesSection
+                  sizes={state.config.manualSizes || []}
+                  availableStyles={availableStyles}
+                  onSizesChange={(sizes) => setConfig({ manualSizes: sizes })}
+                  onAddSize={() =>
+                    addManualSize(
+                      availableStyles,
+                      state.config.scaleRatio || 1.2
+                    )
+                  }
+                  onRemoveSize={removeManualSize}
+                  onUpdateSize={updateManualSize}
+                  error={currentErrors.manualSizes}
+                />
+              </FolderTabsContent>
+            </FolderTabs>
+          </div>
         </div>
       </Accordion.Content>
     </Accordion.Item>

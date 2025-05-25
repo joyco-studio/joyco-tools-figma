@@ -70,17 +70,12 @@ export const FolderTabsTrigger = React.forwardRef<
     <TabsTrigger
       ref={ref}
       className={cn(
-        "bg-muted overflow-hidden rounded-b-none border-x border-t py-2 data-[state=active]:z-10 data-[state=active]:shadow-none",
+        "bg-muted overflow-hidden rounded-b-none border-x inline-flex items-center gap-2 border-t py-2 data-[state=active]:z-10 data-[state=active]:shadow-none",
         className
       )}
       {...props}
     >
-      {icon &&
-        React.cloneElement(icon as React.ReactElement, {
-          className: "-ms-0.5 me-1.5 opacity-60",
-          size: 16,
-          "aria-hidden": "true",
-        })}
+      {icon}
       {children}
     </TabsTrigger>
   );

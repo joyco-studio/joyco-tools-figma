@@ -37,8 +37,10 @@ export interface SizeEntry {
   lineHeight: number;
   letterSpacing: number;
   styles: string[]; // Add styles to each size
-  // Optional variable binding only for size
+  // Optional variable binding for all numeric fields
   sizeVariable?: Variable | null;
+  lineHeightVariable?: Variable | null;
+  letterSpacingVariable?: Variable | null;
 }
 
 interface Variable {
@@ -104,6 +106,8 @@ export function ManualSizes({
       letterSpacing: baseLetterSpacing, // Copy from previous
       styles: baseStyles, // Copy from previous or default
       sizeVariable: null,
+      lineHeightVariable: null,
+      letterSpacingVariable: null,
     };
 
     const newSizes = [...sizes, newSize];
@@ -125,7 +129,9 @@ export function ManualSizes({
       | "lineHeight"
       | "letterSpacing"
       | "styles"
-      | "sizeVariable",
+      | "sizeVariable"
+      | "lineHeightVariable"
+      | "letterSpacingVariable",
     value: string | number | string[] | Variable | null
   ) => {
     const newSizes = sizes.map((size) =>
@@ -401,40 +407,132 @@ export function ManualSizes({
               <div className="grid grid-cols-2 gap-3">
                 {/* Line Height */}
                 <FormField label="Line Height" size="sm">
-                  <Input
-                    type="text"
-                    placeholder="1.4"
-                    value={sizeEntry.lineHeight}
-                    onChange={(e) =>
-                      updateManualSize(
-                        sizeEntry.id,
-                        "lineHeight",
-                        parseFloat(e.target.value) || 1.4
-                      )
-                    }
-                    className="h-8"
-                  />
+                  <div className="flex items-stretch">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="1.4"
+                        value={
+                          sizeEntry.lineHeightVariable
+                            ? ""
+                            : sizeEntry.lineHeight
+                        }
+                        onChange={(e) =>
+                          updateManualSize(
+                            sizeEntry.id,
+                            "lineHeight",
+                            parseFloat(e.target.value) || 1.4
+                          )
+                        }
+                        disabled={!!sizeEntry.lineHeightVariable}
+                        readOnly={!!sizeEntry.lineHeightVariable}
+                        className="h-8 border-r rounded-r-none"
+                      />
+                      {/* Variable display overlay */}
+                      {sizeEntry.lineHeightVariable && (
+                        <div className="absolute inset-[2px] flex items-center px-2 pointer-events-none bg-background rounded-sm">
+                          <div className="flex items-center flex-1 min-w-0 gap-1">
+                            <span className="text-xs font-medium truncate text-foreground">
+                              {sizeEntry.lineHeightVariable.name}
+                            </span>
+                            <span className="px-1 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
+                              {getTypeLabel(
+                                sizeEntry.lineHeightVariable.resolvedType
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <VariableSelector
+                      selectedVariable={sizeEntry.lineHeightVariable}
+                      onVariableSelect={(variable) =>
+                        updateManualSize(
+                          sizeEntry.id,
+                          "lineHeightVariable",
+                          variable
+                        )
+                      }
+                      onUnlink={() =>
+                        updateManualSize(
+                          sizeEntry.id,
+                          "lineHeightVariable",
+                          null
+                        )
+                      }
+                      allowedTypes={["FLOAT"]}
+                      className="h-8 border-l-0 rounded-l-none"
+                      width={300}
+                    />
+                  </div>
                 </FormField>
 
                 {/* Letter Spacing */}
                 <FormField label="Letter Spacing" size="sm">
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="0"
-                      value={sizeEntry.letterSpacing}
-                      onChange={(e) =>
+                  <div className="flex items-stretch">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="0"
+                        value={
+                          sizeEntry.letterSpacingVariable
+                            ? ""
+                            : sizeEntry.letterSpacing
+                        }
+                        onChange={(e) =>
+                          updateManualSize(
+                            sizeEntry.id,
+                            "letterSpacing",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        disabled={!!sizeEntry.letterSpacingVariable}
+                        readOnly={!!sizeEntry.letterSpacingVariable}
+                        className="h-8 border-r rounded-r-none"
+                      />
+                      {/* Variable display overlay */}
+                      {sizeEntry.letterSpacingVariable && (
+                        <div className="absolute inset-[2px] flex items-center px-2 pointer-events-none bg-background rounded-sm">
+                          <div className="flex items-center flex-1 min-w-0 gap-1">
+                            <span className="text-xs font-medium truncate text-foreground">
+                              {sizeEntry.letterSpacingVariable.name}
+                            </span>
+                            <span className="px-1 py-0.5 text-xs rounded bg-muted text-muted-foreground shrink-0">
+                              {getTypeLabel(
+                                sizeEntry.letterSpacingVariable.resolvedType
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {!sizeEntry.letterSpacingVariable && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <span className="text-xs text-muted-foreground">
+                            %
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <VariableSelector
+                      selectedVariable={sizeEntry.letterSpacingVariable}
+                      onVariableSelect={(variable) =>
                         updateManualSize(
                           sizeEntry.id,
-                          "letterSpacing",
-                          parseFloat(e.target.value) || 0
+                          "letterSpacingVariable",
+                          variable
                         )
                       }
-                      className="h-8 pr-6"
+                      onUnlink={() =>
+                        updateManualSize(
+                          sizeEntry.id,
+                          "letterSpacingVariable",
+                          null
+                        )
+                      }
+                      allowedTypes={["FLOAT"]}
+                      className="h-8 border-l-0 rounded-l-none"
+                      width={300}
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
                   </div>
                 </FormField>
               </div>

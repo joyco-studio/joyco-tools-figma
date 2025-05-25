@@ -20,6 +20,8 @@ export interface SizeEntry {
   letterSpacing: number;
   styles: string[];
   sizeVariable?: Variable | null;
+  lineHeightVariable?: Variable | null;
+  letterSpacingVariable?: Variable | null;
 }
 
 export interface TypographyConfig {
@@ -28,8 +30,12 @@ export interface TypographyConfig {
   fontFamily?: string;
   styles: string[];
   variableId?: string;
+  initialSize?: number;
+  steps?: number;
   lineHeight?: number;
   letterSpacing?: number;
+  lineHeightVariable?: Variable | null;
+  letterSpacingVariable?: Variable | null;
   isManualScale: boolean;
   scaleRatio?: number;
   manualSizes?: SizeEntry[];
@@ -38,6 +44,8 @@ export interface TypographyConfig {
 export interface ValidationErrors {
   fontFamily?: string;
   styles?: string;
+  initialSize?: string;
+  steps?: string;
   lineHeight?: string;
   letterSpacing?: string;
   scaleRatio?: string;
