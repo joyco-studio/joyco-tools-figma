@@ -473,6 +473,62 @@ export const pluginApi = createPluginAPI({
       };
     }
   },
+  async create3DFrame(data: {
+    imageData: number[];
+    width: number;
+    height: number;
+    modelName: string;
+  }) {
+    try {
+      console.log(
+        "🎯 Creating 3D frame:",
+        data.modelName,
+        `${data.width}x${data.height}`
+      );
+
+      // Create image from the data
+      const imageData = new Uint8Array(data.imageData);
+      const image = figma.createImage(imageData);
+
+      // Create a rectangle to hold the image
+      const rect = figma.createRectangle();
+      rect.name = `3D Render - ${data.modelName}`;
+      rect.resize(data.width, data.height);
+
+      // Position the rectangle in the viewport
+      rect.x = figma.viewport.center.x - data.width / 2;
+      rect.y = figma.viewport.center.y - data.height / 2;
+
+      // Set the image fill with no background
+      rect.fills = [
+        {
+          type: "IMAGE",
+          imageHash: image.hash,
+          scaleMode: "FILL",
+        },
+      ];
+
+      // Add to current page
+      figma.currentPage.appendChild(rect);
+
+      // Select the new image
+      figma.currentPage.selection = [rect];
+      figma.viewport.scrollAndZoomIntoView([rect]);
+
+      console.log("✅ Successfully created 3D frame:", rect.name);
+
+      return {
+        success: true,
+        frameName: rect.name,
+      };
+    } catch (error) {
+      console.error("❌ Error creating 3D frame:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
 });
 
 let eventCallback = {

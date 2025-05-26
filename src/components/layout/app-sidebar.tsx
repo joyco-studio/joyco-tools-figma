@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Type, Square, User2, ChevronUp } from "lucide-react";
+import { Type, Square, User2, ChevronUp, Box } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +28,12 @@ const tools = [
     title: "Typography",
     icon: Type,
     description: "Manage text styles and fonts",
+  },
+  {
+    id: "3d-viewer",
+    title: "3D Viewer",
+    icon: Box,
+    description: "View and render GLB/GLTF models",
   },
   {
     id: "rectangle-creator",

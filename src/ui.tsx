@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
 import { RectangleCreator } from "./tools/rectangle-creator";
 import { Typography } from "./tools/typography";
+import { ThreeDViewer } from "./tools/3d-viewer";
 import { TypeIcon } from "lucide-react";
 import { useFontsStore, useVariablesStore } from "./stores/fonts";
 import { AppSidebar } from "./components/layout/app-sidebar";
@@ -36,6 +37,8 @@ function App() {
     switch (activeTool) {
       case "typography":
         return <Typography />;
+      case "3d-viewer":
+        return <ThreeDViewer />;
       case "rectangle-creator":
         return <RectangleCreator />;
       default:

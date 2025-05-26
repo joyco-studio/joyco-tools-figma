@@ -13,3 +13,9 @@ figma.on("selectionchange", () => {
 figma.on("currentpagechange", () => {
   api.uiApi.pageChanged(figma.currentPage);
 });
+
+// Handle messages from UI (currently no direct message handling needed)
+figma.ui.onmessage = async (msg) => {
+  // All functionality has been moved to the API pattern
+  // Future direct message handling can be added here if needed
+};
