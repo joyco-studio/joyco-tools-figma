@@ -18,7 +18,7 @@ import {
   FolderTabsList,
   FolderTabsTrigger,
   FolderTabsContent,
-} from "../../../components/folder-tabs";
+} from "@/components/folder-tabs";
 
 // Custom components
 import { AutoResizeInput } from "./auto-resize-input";
@@ -27,17 +27,17 @@ import { TypographySettings } from "./typography-settings";
 import { ManualSizesSection } from "./manual-sizes-section";
 
 // Types and hooks
-import type { TextStyleProps } from "../../../lib/types/typography";
-import { useTypographyState } from "../../../lib/hooks/use-typography-state";
-import { useFontsStore, useVariablesStore } from "../../../stores/fonts";
+import type { TextStyleProps } from "@/lib/types/typography";
+import { useTypographyState } from "@/lib/hooks/use-typography-state";
+import { useFontsStore, useVariablesStore } from "@/stores/fonts";
 
 // Utils
 import {
   getAvailableStyles,
   filterFontsByQuery,
   validateTypographyConfig,
-} from "../../../lib/utils/typography";
-import { SCALE_RATIO_OPTIONS } from "../../../lib/constants/typography";
+} from "@/lib/utils/typography";
+import { SCALE_RATIO_OPTIONS } from "@/lib/constants/typography";
 
 export function TextStyle({
   styleId,

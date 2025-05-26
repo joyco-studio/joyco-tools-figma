@@ -1,9 +1,9 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
-import { RectangleCreator } from "./tools/rectangle-creator";
-import { Typography } from "./tools/typography";
-import { ThreeDViewer } from "./tools/3d-viewer";
+import { RectangleCreator } from "./tools/shapes/rectangle-creator";
+import { Typography } from "./tools/typography/styles-generator";
+import { ThreeDViewer } from "./tools/3d/glb-viewer";
 import { TypeIcon } from "lucide-react";
 import { useFontsStore, useVariablesStore } from "./stores/fonts";
 import { AppSidebar } from "./components/layout/app-sidebar";
@@ -23,7 +23,7 @@ const tools = [
 ];
 
 function App() {
-  const [activeTool, setActiveTool] = React.useState(tools[0].id);
+  const [activeTool, setActiveTool] = React.useState("typography");
   const loadFonts = useFontsStore((state) => state.loadFonts);
   const loadVariables = useVariablesStore((state) => state.loadVariables);
 

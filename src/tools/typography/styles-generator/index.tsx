@@ -2,7 +2,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
-import { TextStyle } from "./styles-generator/components/text-style";
+import { TextStyle } from "./components/text-style";
 import { useFontsStore, useVariablesStore } from "@/stores/fonts";
 import { pluginApi } from "@/api";
 

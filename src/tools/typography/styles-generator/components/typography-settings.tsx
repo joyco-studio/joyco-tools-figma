@@ -20,7 +20,7 @@ import type {
   ScaleRatioOption,
   ValidationErrors,
   Variable,
-} from "../../../lib/types/typography";
+} from "@/lib/types/typography";
 
 interface TypographySettingsProps {
   initialSize: number;

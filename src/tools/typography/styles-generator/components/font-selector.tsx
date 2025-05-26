@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VariableSelector } from "./variable-selector";
-import type { Font, Variable } from "../../../lib/types/typography";
+import type { Font, Variable } from "@/lib/types/typography";
 
 const getTypeLabel = (resolvedType: string) => {
   switch (resolvedType) {

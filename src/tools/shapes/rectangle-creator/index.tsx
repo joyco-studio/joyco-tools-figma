@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export function RectangleCreator() {
   const inputRef = React.useRef<HTMLInputElement>(null);
