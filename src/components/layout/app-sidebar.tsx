@@ -52,30 +52,30 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
   return (
     <Sidebar collapsible="none" className="w-64 border-r bg-muted/50">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <div>
-                <div className="flex items-center justify-center mr-1 rounded-lg aspect-square size-8 bg-sidebar-primary text-sidebar-primary-foreground">
-                  <JoycoLogo className="size-8" />
-                </div>
-                <div className="grid flex-1 leading-tight text-left">
-                  <span className="text-base font-semibold uppercase truncate text-sidebar-foreground">
-                    Joyco Toolbox
-                  </span>
-                  <span className="text-xs uppercase truncate text-sidebar-foreground/70">
-                    Design for rebels
-                  </span>
-                </div>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex gap-1 border border-dashed rounded-lg ring-1 overflow-clip ring-muted/50 border-border bg-muted">
+          <div className="flex items-center justify-center h-full border-r border-dashed bg-background/50 aspect-square border-border">
+            <JoycoLogo className="size-6" />
+          </div>
+          <div className="flex flex-col p-2">
+            <span className="text-base font-semibold uppercase truncate text-foreground/80 leading-[1.1]">
+              Joyco Toolbox
+            </span>
+            <span className="text-xs uppercase truncate text-sidebar-foreground/70">
+              Design for rebels
+            </span>
+          </div>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            Tools{" "}
+            <p className="inline-flex items-center ml-3 text-xs text-accent">
+              <span className="inline-block mr-2 rounded-full size-1.5 bg-accent" />
+              2 new tools
+            </p>
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {tools.map((tool) => (
