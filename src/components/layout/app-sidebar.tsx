@@ -100,7 +100,7 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
   return (
     <Sidebar
       collapsible="none"
-      className="w-64 border-r border-dashed bg-muted/50"
+      className="w-64 gap-5 border-r border-dashed bg-muted/30"
     >
       <SidebarHeader>
         <div className="flex gap-1 border border-dashed rounded-lg ring-1 overflow-clip ring-muted/50 border-border bg-muted">
@@ -120,7 +120,7 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
+          <SidebarGroupLabel className="mb-2 border-b border-dashed border-sidebar-border">
             Tools{" "}
             <p className="inline-flex items-center ml-3 text-xs text-accent">
               <span className="inline-block mr-2 rounded-full size-1.5 bg-accent" />
@@ -138,7 +138,7 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton className="w-full">
+                      <SidebarMenuButton variant="secondary" className="w-full">
                         <category.icon />
                         <span>{category.title}</span>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

@@ -213,9 +213,9 @@ export function ThreeDViewer() {
     <div className="flex flex-col h-screen bg-background">
       <div className="flex flex-1 overflow-hidden">
         {/* Main Viewer */}
-        <div className="flex-1 relative">
+        <div className="relative flex-1">
           {modelUrl ? (
-            <div className="w-full h-full relative">
+            <div className="relative w-full h-full">
               <model-viewer
                 ref={modelViewerRef}
                 src={modelUrl}
@@ -234,7 +234,7 @@ export function ThreeDViewer() {
               />
 
               {/* Floating Toolbar */}
-              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-2 p-2 bg-background border border-muted-foreground/20 rounded-lg shadow-lg">
+              <div className="absolute flex items-center gap-2 p-2 transform -translate-x-1/2 border rounded-lg shadow-lg bottom-6 left-1/2 bg-background border-muted-foreground/20">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -272,12 +272,12 @@ export function ThreeDViewer() {
                 <Button
                   onClick={captureAndCreateFrame}
                   disabled={isRendering}
-                  className="gap-2 h-8"
+                  className="h-8 gap-2"
                   size="sm"
                 >
                   {isRendering ? (
                     <>
-                      <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <div className="border-2 border-current rounded-full size-4 animate-spin border-t-transparent" />
                       Rendering...
                     </>
                   ) : (
@@ -289,36 +289,37 @@ export function ThreeDViewer() {
                 </Button>
 
                 {lastFrameName && (
-                  <div className="text-sm text-green-600 dark:text-green-400 font-medium ml-2">
+                  <div className="ml-2 text-sm font-medium text-green-600 dark:text-green-400">
                     ✓ Created
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            // Upload Area - Empty State
-            <div
-              className="flex items-center justify-center w-full h-full"
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <div className="text-center p-12">
-                <Upload className="size-16 mx-auto mb-6 text-muted-foreground" />
-                <h1 className="text-2xl font-semibold mb-2">
+            <div className="flex flex-col h-full">
+              <div className="flex flex-col p-4">
+                <h1 className="mb-2 text-xl font-semibold uppercase leading-[1.1]">
                   3D Model Renderer
                 </h1>
-                <p className="text-muted-foreground mb-8 max-w-md">
+                <p className="text-sm uppercase text-pretty text-muted-foreground">
                   Upload GLB/GLTF models and render them to Figma frames
                 </p>
+              </div>
+              <div
+                className="flex flex-col items-center justify-center flex-1 w-full p-24 text-center border-t border-dashed border-muted-foreground/20 bg-muted/50"
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   className="gap-2"
                 >
                   <Upload className="size-4" />
-                  Upload 3D Model
+                  Upload Model
                 </Button>
-                <div className="text-xs text-muted-foreground mt-6 space-y-1">
-                  <p>Supported: GLB, GLTF</p>
+                <div className="mt-6 space-y-1 text-xs text-muted-foreground">
+                  <p>Supported: .GLB, .GLTF</p>
                   <p>Max size: 50MB</p>
                 </div>
               </div>
@@ -328,9 +329,9 @@ export function ThreeDViewer() {
 
         {/* Settings Panel */}
         {showSettings && (
-          <div className="w-80 border-l bg-background p-4 space-y-6 overflow-y-auto">
+          <div className="p-4 space-y-6 overflow-y-auto border-l w-80 bg-background">
             <div>
-              <h3 className="font-medium mb-4">Render Settings</h3>
+              <h3 className="mb-4 font-medium">Render Settings</h3>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
@@ -409,7 +410,7 @@ export function ThreeDViewer() {
                       }))
                     }
                   />
-                  <div className="text-xs text-muted-foreground text-center">
+                  <div className="text-xs text-center text-muted-foreground">
                     {settings.exposure.toFixed(1)}
                   </div>
                 </FormField>
@@ -428,7 +429,7 @@ export function ThreeDViewer() {
                       }))
                     }
                   />
-                  <div className="text-xs text-muted-foreground text-center">
+                  <div className="text-xs text-center text-muted-foreground">
                     {settings.shadowIntensity.toFixed(1)}
                   </div>
                 </FormField>
