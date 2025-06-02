@@ -44,7 +44,7 @@ export const INITIAL_TYPOGRAPHY_STATE: TypographyConfig = {
   styles: [],
   initialSize: 12,
   steps: 9,
-  lineHeight: 1.4,
+  lineHeight: 120,
   letterSpacing: 0,
   lineHeightVariable: null,
   letterSpacingVariable: null,
@@ -56,7 +56,7 @@ export const INITIAL_TYPOGRAPHY_STATE: TypographyConfig = {
 export const INITIAL_MANUAL_SIZE: Omit<SizeEntry, "id"> = {
   name: "1",
   size: 10,
-  lineHeight: 1.4,
+  lineHeight: 120,
   letterSpacing: 0,
   styles: [],
   sizeVariable: null,
@@ -67,7 +67,7 @@ export const INITIAL_MANUAL_SIZE: Omit<SizeEntry, "id"> = {
 export const INITIAL_VALIDATION_ERRORS: ValidationErrors = {};
 
 export const VALIDATION_RULES = {
-  lineHeight: { min: 0.5, max: 5 },
+  lineHeight: { min: 50, max: 500 },
   letterSpacing: { min: -100, max: 200 },
   fontSize: { min: 1, max: 1000 },
 } as const;

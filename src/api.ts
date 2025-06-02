@@ -157,6 +157,7 @@ export const pluginApi = createPluginAPI({
       size: number;
       lineHeight: number;
       letterSpacing: number;
+      styles?: string[]; // Add styles to manual sizes
       // Optional variable binding for size
       sizeVariable?: Variable | null;
     }>;
@@ -190,6 +191,7 @@ export const pluginApi = createPluginAPI({
 
       let fontFamily: string;
       let availableStyles: string[];
+      let selectedStyles: string[]; // The styles that should be used for generation
       let baseVariable: Variable | null = null;
 
       // Step 1: Resolve font information
@@ -223,10 +225,17 @@ export const pluginApi = createPluginAPI({
             .map((font) => font.fontName.style);
           availableStyles = [...new Set(fontStyles)];
 
+          // For variable-based typography, use provided styles or all available styles
+          selectedStyles =
+            config.styles && config.styles.length > 0
+              ? config.styles
+              : availableStyles;
+
           console.log(
-            `🎨 Variable resolved to font: ${fontFamily} with styles:`,
+            `🎨 Variable resolved to font: ${fontFamily} with available styles:`,
             availableStyles
           );
+          console.log(`🎯 Using selected styles:`, selectedStyles);
         } else {
           // For other variable types, we might need different handling
           // For now, we'll require the user to specify font family manually or via another variable
@@ -237,11 +246,11 @@ export const pluginApi = createPluginAPI({
       } else {
         // Type-based: use provided font family and styles
         fontFamily = config.fontFamily!;
-        availableStyles = config.styles!;
+        selectedStyles = config.styles!; // Use the selected styles directly
 
         console.log(
-          `🎨 Using font: ${fontFamily} with styles:`,
-          availableStyles
+          `🎨 Using font: ${fontFamily} with selected styles:`,
+          selectedStyles
         );
 
         // Validate that all requested styles are available using Figma types
@@ -250,7 +259,7 @@ export const pluginApi = createPluginAPI({
           .filter((font) => font.fontName.family === fontFamily)
           .map((font) => font.fontName.style);
 
-        const invalidStyles = availableStyles.filter(
+        const invalidStyles = selectedStyles.filter(
           (style) => !actualAvailableStyles.includes(style)
         );
 
@@ -267,6 +276,7 @@ export const pluginApi = createPluginAPI({
         size: number;
         lineHeight: number;
         letterSpacing: number;
+        styles?: string[]; // Add styles to size scale for manual mode
       }>;
 
       if (config.isManualScale) {
@@ -276,6 +286,7 @@ export const pluginApi = createPluginAPI({
           size: size.size,
           lineHeight: size.lineHeight,
           letterSpacing: size.letterSpacing,
+          styles: size.styles || selectedStyles, // Use size-specific styles or fallback to selected styles
         }));
 
         console.log("📏 Using manual scale:", sizeScale);
@@ -291,6 +302,7 @@ export const pluginApi = createPluginAPI({
           size: Math.round(baseSize * Math.pow(ratio, index)),
           lineHeight: defaultLineHeight,
           letterSpacing: defaultLetterSpacing,
+          // No styles property for auto mode - we'll use selectedStyles globally
         }));
 
         console.log(
@@ -310,70 +322,74 @@ export const pluginApi = createPluginAPI({
         letterSpacing: number;
       }> = [];
 
-      for (const style of availableStyles) {
+      // For auto mode, use selectedStyles globally
+      // For manual mode, use styles from each size entry
+      if (config.isManualScale) {
+        // Manual mode: iterate through each size and its specific styles
         for (const size of sizeScale) {
-          try {
-            // Load the font before creating style using Figma types
-            await figma.loadFontAsync({
-              family: fontFamily,
-              style: style,
-            } as FontName);
+          const stylesToUse = size.styles || selectedStyles;
+          for (const style of stylesToUse) {
+            try {
+              // Load the font before creating style using Figma types
+              await figma.loadFontAsync({
+                family: fontFamily,
+                style: style,
+              } as FontName);
 
-            // Create text style using Figma API
-            const textStyle: TextStyle = figma.createTextStyle();
+              // Create text style using Figma API
+              const textStyle: TextStyle = figma.createTextStyle();
 
-            // New naming structure: {Name}/{Number}/{Style}
-            textStyle.name = `${config.name}/${size.name}/${style}`;
+              // New naming structure: {Name}/{Number}/{Style}
+              textStyle.name = `${config.name}/${size.name}/${style}`;
 
-            // Apply typography settings using Figma types
-            textStyle.fontName = {
-              family: fontFamily,
-              style: style,
-            } as FontName;
+              // Apply typography settings using Figma types
+              textStyle.fontName = {
+                family: fontFamily,
+                style: style,
+              } as FontName;
 
-            textStyle.fontSize = size.size;
+              textStyle.fontSize = size.size;
 
-            // Set line height using Figma's LineHeight type
-            textStyle.lineHeight = {
-              value: Math.round(size.size * size.lineHeight),
-              unit: "PIXELS",
-            } as LineHeight;
+              // Set line height using Figma's LineHeight type
+              textStyle.lineHeight = {
+                value: size.lineHeight, // Use percentage value directly (120 for 120%)
+                unit: "PERCENT",
+              } as LineHeight;
 
-            // Set letter spacing using Figma's LetterSpacing type
-            textStyle.letterSpacing = {
-              value: size.letterSpacing / 100, // Convert % to decimal
-              unit: "PERCENT",
-            } as LetterSpacing;
+              // Set letter spacing using Figma's LetterSpacing type
+              textStyle.letterSpacing = {
+                value: size.letterSpacing, // Already in percentage
+                unit: "PERCENT",
+              } as LetterSpacing;
 
-            // If using variable, bind variable to text style properties
-            if (baseVariable && config.fontSource === "variable") {
-              textStyle.description = `Generated from variable: ${baseVariable.name}`;
+              // If using variable, bind variable to text style properties
+              if (baseVariable && config.fontSource === "variable") {
+                textStyle.description = `Generated from variable: ${baseVariable.name}`;
 
-              try {
-                // Bind the font family variable to the text style
-                if (baseVariable.resolvedType === "STRING") {
-                  console.log(
-                    `🔗 Binding variable ${baseVariable.name} to fontFamily property`
+                try {
+                  // Bind the font family variable to the text style
+                  if (baseVariable.resolvedType === "STRING") {
+                    console.log(
+                      `🔗 Binding variable ${baseVariable.name} to fontFamily property`
+                    );
+                    // Use type assertion as the TypeScript types may be outdated
+                    (textStyle as any).setBoundVariable(
+                      "fontFamily",
+                      baseVariable
+                    );
+                    console.log("✅ Successfully bound fontFamily variable");
+                  }
+                } catch (bindingError) {
+                  console.warn(
+                    "⚠️ Failed to bind fontFamily variable:",
+                    bindingError
                   );
-                  // Use type assertion as the TypeScript types may be outdated
-                  (textStyle as any).setBoundVariable(
-                    "fontFamily",
-                    baseVariable
-                  );
-                  console.log("✅ Successfully bound fontFamily variable");
+                  textStyle.description += " (Variable binding failed)";
                 }
-              } catch (bindingError) {
-                console.warn(
-                  "⚠️ Failed to bind fontFamily variable:",
-                  bindingError
-                );
-                textStyle.description += " (Variable binding failed)";
               }
-            }
 
-            // If manual sizes have variable bindings, apply them
-            if (config.isManualScale && config.manualSizes) {
-              const currentSize = config.manualSizes.find(
+              // If manual sizes have variable bindings, apply them
+              const currentSize = config.manualSizes!.find(
                 (s) => s.name === size.name
               );
               if (currentSize?.sizeVariable) {
@@ -414,31 +430,120 @@ export const pluginApi = createPluginAPI({
                   );
                 }
               }
+
+              createdStyles.push({
+                id: textStyle.id,
+                name: textStyle.name,
+                fontFamily,
+                style,
+                size: size.size,
+                lineHeight: size.lineHeight,
+                letterSpacing: size.letterSpacing,
+              });
+
+              console.log(`✅ Created text style: ${textStyle.name}`);
+            } catch (styleError) {
+              console.error(
+                `❌ Failed to create style ${size.name}/${style}:`,
+                styleError
+              );
+              throw new Error(
+                `Failed to create text style ${size.name}/${style}: ${
+                  styleError instanceof Error
+                    ? styleError.message
+                    : "Unknown error"
+                }`
+              );
             }
+          }
+        }
+      } else {
+        // Auto mode: use selectedStyles globally for all sizes
+        for (const style of selectedStyles) {
+          for (const size of sizeScale) {
+            try {
+              // Load the font before creating style using Figma types
+              await figma.loadFontAsync({
+                family: fontFamily,
+                style: style,
+              } as FontName);
 
-            createdStyles.push({
-              id: textStyle.id,
-              name: textStyle.name,
-              fontFamily,
-              style,
-              size: size.size,
-              lineHeight: size.lineHeight,
-              letterSpacing: size.letterSpacing,
-            });
+              // Create text style using Figma API
+              const textStyle: TextStyle = figma.createTextStyle();
 
-            console.log(`✅ Created text style: ${textStyle.name}`);
-          } catch (styleError) {
-            console.error(
-              `❌ Failed to create style ${size.name}/${style}:`,
-              styleError
-            );
-            throw new Error(
-              `Failed to create text style ${size.name}/${style}: ${
-                styleError instanceof Error
-                  ? styleError.message
-                  : "Unknown error"
-              }`
-            );
+              // New naming structure: {Name}/{Number}/{Style}
+              textStyle.name = `${config.name}/${size.name}/${style}`;
+
+              // Apply typography settings using Figma types
+              textStyle.fontName = {
+                family: fontFamily,
+                style: style,
+              } as FontName;
+
+              textStyle.fontSize = size.size;
+
+              // Set line height using Figma's LineHeight type
+              textStyle.lineHeight = {
+                value: size.lineHeight, // Use percentage value directly (120 for 120%)
+                unit: "PERCENT",
+              } as LineHeight;
+
+              // Set letter spacing using Figma's LetterSpacing type
+              textStyle.letterSpacing = {
+                value: size.letterSpacing, // Already in percentage
+                unit: "PERCENT",
+              } as LetterSpacing;
+
+              // If using variable, bind variable to text style properties
+              if (baseVariable && config.fontSource === "variable") {
+                textStyle.description = `Generated from variable: ${baseVariable.name}`;
+
+                try {
+                  // Bind the font family variable to the text style
+                  if (baseVariable.resolvedType === "STRING") {
+                    console.log(
+                      `🔗 Binding variable ${baseVariable.name} to fontFamily property`
+                    );
+                    // Use type assertion as the TypeScript types may be outdated
+                    (textStyle as any).setBoundVariable(
+                      "fontFamily",
+                      baseVariable
+                    );
+                    console.log("✅ Successfully bound fontFamily variable");
+                  }
+                } catch (bindingError) {
+                  console.warn(
+                    "⚠️ Failed to bind fontFamily variable:",
+                    bindingError
+                  );
+                  textStyle.description += " (Variable binding failed)";
+                }
+              }
+
+              createdStyles.push({
+                id: textStyle.id,
+                name: textStyle.name,
+                fontFamily,
+                style,
+                size: size.size,
+                lineHeight: size.lineHeight,
+                letterSpacing: size.letterSpacing,
+              });
+
+              console.log(`✅ Created text style: ${textStyle.name}`);
+            } catch (styleError) {
+              console.error(
+                `❌ Failed to create style ${size.name}/${style}:`,
+                styleError
+              );
+              throw new Error(
+                `Failed to create text style ${size.name}/${style}: ${
+                  styleError instanceof Error
+                    ? styleError.message
+                    : "Unknown error"
+                }`
+              );
+            }
           }
         }
       }
@@ -455,7 +560,7 @@ export const pluginApi = createPluginAPI({
         config: {
           name: config.name,
           fontFamily,
-          styles: availableStyles,
+          styles: selectedStyles, // Return the actual selected styles, not all available ones
           scale: sizeScale,
           isManualScale: config.isManualScale,
           scaleRatio: config.scaleRatio,

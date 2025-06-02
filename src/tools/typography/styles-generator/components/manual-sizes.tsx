@@ -29,6 +29,7 @@ import {
 import { VariableSelector } from "./variable-selector";
 import { AutoResizeInput } from "./auto-resize-input";
 import { cn } from "@/lib/utils";
+import { formatLineHeightForDisplay } from "@/lib/utils/typography";
 
 export interface SizeEntry {
   id: string;
@@ -87,6 +88,27 @@ export function ManualSizes({
   editingId,
   onEditingIdChange,
 }: ManualSizesProps) {
+  // Local state for input values to allow typing intermediate states
+  const [inputValues, setInputValues] = React.useState<{
+    [sizeId: string]: {
+      lineHeight: string;
+      letterSpacing: string;
+    };
+  }>({});
+
+  // Initialize input values when sizes change
+  React.useEffect(() => {
+    const newInputValues: typeof inputValues = {};
+    sizes.forEach((size) => {
+      newInputValues[size.id] = {
+        lineHeight: formatLineHeightForDisplay(size.lineHeight),
+        letterSpacing:
+          size.letterSpacing === 0 ? "" : size.letterSpacing.toString(),
+      };
+    });
+    setInputValues(newInputValues);
+  }, [sizes.length]); // Only re-initialize when sizes array length changes
+
   const addManualSize = () => {
     const newIndex = sizes.length + 1;
     const newId = newIndex.toString();
@@ -94,7 +116,7 @@ export function ManualSizes({
 
     // Use previous size as reference, or defaults
     const baseSize = prevSize ? prevSize.size : 10;
-    const baseLineHeight = prevSize ? prevSize.lineHeight : 1.4;
+    const baseLineHeight = prevSize ? prevSize.lineHeight : 1.2;
     const baseLetterSpacing = prevSize ? prevSize.letterSpacing : 0;
     const baseStyles = prevSize ? prevSize.styles : availableStyles.slice(0, 1); // Default to first style
 
@@ -118,6 +140,13 @@ export function ManualSizes({
     if (sizes.length > 1) {
       const newSizes = sizes.filter((size) => size.id !== id);
       onSizesChange(newSizes);
+
+      // Clean up input values for removed size
+      setInputValues((prev) => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
     }
   };
 
@@ -138,6 +167,140 @@ export function ManualSizes({
       size.id === id ? { ...size, [field]: value } : size
     );
     onSizesChange(newSizes);
+  };
+
+  const handleLineHeightChange = (sizeId: string, value: string) => {
+    // Update local input state
+    setInputValues((prev) => ({
+      ...prev,
+      [sizeId]: {
+        ...prev[sizeId],
+        lineHeight: value,
+      },
+    }));
+
+    // Only update parent state if it's a valid number
+    if (value.trim() && value !== "-" && value !== ".") {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        updateManualSize(sizeId, "lineHeight", num);
+      }
+    }
+  };
+
+  const handleLetterSpacingChange = (sizeId: string, value: string) => {
+    // Update local input state
+    setInputValues((prev) => ({
+      ...prev,
+      [sizeId]: {
+        ...prev[sizeId],
+        letterSpacing: value,
+      },
+    }));
+
+    // Don't update parent state for intermediate/incomplete values
+    const isEmpty = value.trim() === "";
+    const isJustMinus = value === "-";
+    const isJustDot = value === ".";
+    const isMinusDot = value === "-.";
+    const isMinusZero = value === "-0";
+    const isMinusZeroDot = value === "-0.";
+
+    // Skip parent update for these intermediate states
+    if (
+      isEmpty ||
+      isJustMinus ||
+      isJustDot ||
+      isMinusDot ||
+      isMinusZero ||
+      isMinusZeroDot
+    ) {
+      return;
+    }
+
+    // Only update parent state if it's a valid complete number
+    const num = parseFloat(value);
+    if (!isNaN(num)) {
+      updateManualSize(sizeId, "letterSpacing", num);
+    }
+  };
+
+  const handleLineHeightBlur = (sizeId: string) => {
+    const currentValue = inputValues[sizeId]?.lineHeight || "";
+    const size = sizes.find((s) => s.id === sizeId);
+
+    if (!size) return;
+
+    // On blur, ensure we have a valid value or reset to the actual size value
+    if (
+      currentValue.trim() === "" ||
+      currentValue === "-" ||
+      currentValue === "."
+    ) {
+      setInputValues((prev) => ({
+        ...prev,
+        [sizeId]: {
+          ...prev[sizeId],
+          lineHeight: formatLineHeightForDisplay(size.lineHeight),
+        },
+      }));
+    } else {
+      const num = parseFloat(currentValue);
+      if (isNaN(num)) {
+        setInputValues((prev) => ({
+          ...prev,
+          [sizeId]: {
+            ...prev[sizeId],
+            lineHeight: formatLineHeightForDisplay(size.lineHeight),
+          },
+        }));
+      }
+    }
+  };
+
+  const handleLetterSpacingBlur = (sizeId: string) => {
+    const currentValue = inputValues[sizeId]?.letterSpacing || "";
+    const size = sizes.find((s) => s.id === sizeId);
+
+    if (!size) return;
+
+    // On blur, ensure we have a valid value or reset to the actual size value
+    const isEmpty = currentValue.trim() === "";
+    const isJustMinus = currentValue === "-";
+    const isJustDot = currentValue === ".";
+    const isMinusDot = currentValue === "-.";
+    const isMinusZero = currentValue === "-0";
+    const isMinusZeroDot = currentValue === "-0.";
+
+    if (
+      isEmpty ||
+      isJustMinus ||
+      isJustDot ||
+      isMinusDot ||
+      isMinusZero ||
+      isMinusZeroDot
+    ) {
+      setInputValues((prev) => ({
+        ...prev,
+        [sizeId]: {
+          ...prev[sizeId],
+          letterSpacing:
+            size.letterSpacing === 0 ? "" : size.letterSpacing.toString(),
+        },
+      }));
+    } else {
+      const num = parseFloat(currentValue);
+      if (isNaN(num)) {
+        setInputValues((prev) => ({
+          ...prev,
+          [sizeId]: {
+            ...prev[sizeId],
+            letterSpacing:
+              size.letterSpacing === 0 ? "" : size.letterSpacing.toString(),
+          },
+        }));
+      }
+    }
   };
 
   const handleStyleToggle = (sizeId: string, styleValue: string) => {
@@ -411,19 +574,16 @@ export function ManualSizes({
                     <div className="relative flex-1">
                       <Input
                         type="text"
-                        placeholder="1.4"
+                        placeholder="120"
                         value={
                           sizeEntry.lineHeightVariable
                             ? ""
-                            : sizeEntry.lineHeight
+                            : inputValues[sizeEntry.id]?.lineHeight || ""
                         }
                         onChange={(e) =>
-                          updateManualSize(
-                            sizeEntry.id,
-                            "lineHeight",
-                            parseFloat(e.target.value) || 1.4
-                          )
+                          handleLineHeightChange(sizeEntry.id, e.target.value)
                         }
+                        onBlur={() => handleLineHeightBlur(sizeEntry.id)}
                         disabled={!!sizeEntry.lineHeightVariable}
                         readOnly={!!sizeEntry.lineHeightVariable}
                         className="h-8 border-r rounded-r-none"
@@ -441,6 +601,13 @@ export function ManualSizes({
                               )}
                             </span>
                           </div>
+                        </div>
+                      )}
+                      {!sizeEntry.lineHeightVariable && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <span className="text-xs text-muted-foreground">
+                            %
+                          </span>
                         </div>
                       )}
                     </div>
@@ -477,15 +644,15 @@ export function ManualSizes({
                         value={
                           sizeEntry.letterSpacingVariable
                             ? ""
-                            : sizeEntry.letterSpacing
+                            : inputValues[sizeEntry.id]?.letterSpacing || ""
                         }
                         onChange={(e) =>
-                          updateManualSize(
+                          handleLetterSpacingChange(
                             sizeEntry.id,
-                            "letterSpacing",
-                            parseFloat(e.target.value) || 0
+                            e.target.value
                           )
                         }
+                        onBlur={() => handleLetterSpacingBlur(sizeEntry.id)}
                         disabled={!!sizeEntry.letterSpacingVariable}
                         readOnly={!!sizeEntry.letterSpacingVariable}
                         className="h-8 border-r rounded-r-none"

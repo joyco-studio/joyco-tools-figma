@@ -26,6 +26,30 @@ export function getTypeLabel(resolvedType: string): string {
   }
 }
 
+/**
+ * Convert line height from multiplier (storage) to percentage (UI display)
+ * Example: 1.2 -> 120
+ */
+export function lineHeightToPercentage(lineHeight: number): number {
+  return lineHeight * 100;
+}
+
+/**
+ * Convert line height from percentage (UI input) to multiplier (storage)
+ * Example: 120 -> 1.2
+ */
+export function lineHeightFromPercentage(percentage: number): number {
+  return percentage / 100;
+}
+
+/**
+ * Format line height as percentage string for display
+ * Example: 120 -> "120"
+ */
+export function formatLineHeightForDisplay(lineHeight: number): string {
+  return lineHeight.toString();
+}
+
 export function findMatchingFont(fonts: Font[], variable: Variable): string[] {
   let primaryCandidate: string | null = null;
 
@@ -80,7 +104,7 @@ export function createNewManualSize(
   const prevSize = existingSizes[existingSizes.length - 1];
 
   const baseSize = prevSize?.size || 10;
-  const baseLineHeight = prevSize?.lineHeight || 1.4;
+  const baseLineHeight = prevSize?.lineHeight || 1.2;
   const baseLetterSpacing = prevSize?.letterSpacing || 0;
   const baseStyles =
     prevSize?.styles ||
@@ -130,7 +154,9 @@ export function validateTypographyConfig(
       config.lineHeight < VALIDATION_RULES.lineHeight.min ||
       config.lineHeight > VALIDATION_RULES.lineHeight.max
     ) {
-      errors.lineHeight = `Line height must be between ${VALIDATION_RULES.lineHeight.min} and ${VALIDATION_RULES.lineHeight.max}`;
+      errors.lineHeight = `Line height must be between ${lineHeightToPercentage(
+        VALIDATION_RULES.lineHeight.min
+      )}% and ${lineHeightToPercentage(VALIDATION_RULES.lineHeight.max)}%`;
     }
 
     if (

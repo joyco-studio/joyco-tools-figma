@@ -16,6 +16,11 @@ import { FormField } from "@/components/ui/form-field";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { VariableSelector } from "./variable-selector";
 import { cn } from "@/lib/utils";
+import {
+  formatLineHeightForDisplay,
+  lineHeightFromPercentage,
+  lineHeightToPercentage,
+} from "@/lib/utils/typography";
 import type {
   ScaleRatioOption,
   ValidationErrors,
@@ -91,6 +96,23 @@ export function TypographySettings({
   onStylesOpenChange,
   errors,
 }: TypographySettingsProps) {
+  // Local state for input values to allow typing intermediate states
+  const [lineHeightInput, setLineHeightInput] = React.useState(
+    formatLineHeightForDisplay(lineHeight)
+  );
+  const [letterSpacingInput, setLetterSpacingInput] = React.useState(
+    letterSpacing === 0 ? "" : letterSpacing.toString()
+  );
+
+  // Update local state when props change (e.g., when switching between styles)
+  React.useEffect(() => {
+    setLineHeightInput(formatLineHeightForDisplay(lineHeight));
+  }, [lineHeight]);
+
+  React.useEffect(() => {
+    setLetterSpacingInput(letterSpacing === 0 ? "" : letterSpacing.toString());
+  }, [letterSpacing]);
+
   const getRatioDisplayText = () => {
     const ratio = ratioOptions.find((r) => r.value === scaleRatio.toString());
     return ratio?.label || "Select ratio...";
@@ -129,16 +151,90 @@ export function TypographySettings({
   };
 
   const handleLineHeightChange = (value: string) => {
-    const num = parseFloat(value);
-    if (value.trim() && !isNaN(num)) {
-      onLineHeightChange(num);
+    setLineHeightInput(value);
+
+    // Only update parent state if it's a valid number
+    if (value.trim() && value !== "-" && value !== ".") {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        onLineHeightChange(num);
+      }
     }
   };
 
   const handleLetterSpacingChange = (value: string) => {
+    setLetterSpacingInput(value);
+
+    // Don't update parent state for intermediate/incomplete values
+    const isEmpty = value.trim() === "";
+    const isJustMinus = value === "-";
+    const isJustDot = value === ".";
+    const isMinusDot = value === "-.";
+    const isMinusZero = value === "-0";
+    const isMinusZeroDot = value === "-0.";
+
+    // Skip parent update for these intermediate states
+    if (
+      isEmpty ||
+      isJustMinus ||
+      isJustDot ||
+      isMinusDot ||
+      isMinusZero ||
+      isMinusZeroDot
+    ) {
+      return;
+    }
+
+    // Only update parent state if it's a valid complete number
     const num = parseFloat(value);
-    if (value.trim() && !isNaN(num)) {
+    if (!isNaN(num)) {
       onLetterSpacingChange(num);
+    }
+  };
+
+  const handleLineHeightBlur = () => {
+    // On blur, ensure we have a valid value or reset to the prop value
+    if (
+      lineHeightInput.trim() === "" ||
+      lineHeightInput === "-" ||
+      lineHeightInput === "."
+    ) {
+      setLineHeightInput(formatLineHeightForDisplay(lineHeight));
+    } else {
+      const num = parseFloat(lineHeightInput);
+      if (isNaN(num)) {
+        setLineHeightInput(formatLineHeightForDisplay(lineHeight));
+      }
+    }
+  };
+
+  const handleLetterSpacingBlur = () => {
+    // On blur, ensure we have a valid value or reset to the prop value
+    const isEmpty = letterSpacingInput.trim() === "";
+    const isJustMinus = letterSpacingInput === "-";
+    const isJustDot = letterSpacingInput === ".";
+    const isMinusDot = letterSpacingInput === "-.";
+    const isMinusZero = letterSpacingInput === "-0";
+    const isMinusZeroDot = letterSpacingInput === "-0.";
+
+    if (
+      isEmpty ||
+      isJustMinus ||
+      isJustDot ||
+      isMinusDot ||
+      isMinusZero ||
+      isMinusZeroDot
+    ) {
+      setLetterSpacingInput(
+        letterSpacing === 0 ? "" : letterSpacing.toString()
+      );
+    } else {
+      const num = parseFloat(letterSpacingInput);
+      if (isNaN(num)) {
+        setLetterSpacingInput(
+          letterSpacing === 0 ? "" : letterSpacing.toString()
+        );
+      }
     }
   };
 
@@ -243,9 +339,10 @@ export function TypographySettings({
             <div className="relative flex-1">
               <Input
                 type="text"
-                placeholder="1.4"
-                value={lineHeightVariable ? "" : lineHeight.toString()}
+                placeholder="120"
+                value={lineHeightVariable ? "" : lineHeightInput}
                 onChange={(e) => handleLineHeightChange(e.target.value)}
+                onBlur={handleLineHeightBlur}
                 disabled={!!lineHeightVariable}
                 readOnly={!!lineHeightVariable}
                 className={cn(
@@ -264,6 +361,11 @@ export function TypographySettings({
                       {getTypeLabel(lineHeightVariable.resolvedType)}
                     </span>
                   </div>
+                </div>
+              )}
+              {!lineHeightVariable && (
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <span className="text-xs text-muted-foreground">%</span>
                 </div>
               )}
             </div>
@@ -289,8 +391,9 @@ export function TypographySettings({
               <Input
                 type="text"
                 placeholder="0"
-                value={letterSpacingVariable ? "" : letterSpacing.toString()}
+                value={letterSpacingVariable ? "" : letterSpacingInput}
                 onChange={(e) => handleLetterSpacingChange(e.target.value)}
+                onBlur={handleLetterSpacingBlur}
                 disabled={!!letterSpacingVariable}
                 readOnly={!!letterSpacingVariable}
                 className={cn(
