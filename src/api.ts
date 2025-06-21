@@ -147,6 +147,13 @@ export const pluginApi = createPluginAPI({
     // Typography settings (disabled when manual)
     lineHeight?: number;
     letterSpacing?: number; // percentage
+    textCase?:
+      | "ORIGINAL"
+      | "UPPER"
+      | "LOWER"
+      | "TITLE"
+      | "SMALL_CAPS"
+      | "SMALL_CAPS_FORCED";
 
     // Scale configuration
     isManualScale: boolean;
@@ -157,6 +164,13 @@ export const pluginApi = createPluginAPI({
       size: number;
       lineHeight: number;
       letterSpacing: number;
+      textCase?:
+        | "ORIGINAL"
+        | "UPPER"
+        | "LOWER"
+        | "TITLE"
+        | "SMALL_CAPS"
+        | "SMALL_CAPS_FORCED";
       styles?: string[]; // Add styles to manual sizes
       // Optional variable binding for size
       sizeVariable?: Variable | null;
@@ -276,6 +290,13 @@ export const pluginApi = createPluginAPI({
         size: number;
         lineHeight: number;
         letterSpacing: number;
+        textCase:
+          | "ORIGINAL"
+          | "UPPER"
+          | "LOWER"
+          | "TITLE"
+          | "SMALL_CAPS"
+          | "SMALL_CAPS_FORCED";
         styles?: string[]; // Add styles to size scale for manual mode
       }>;
 
@@ -286,6 +307,7 @@ export const pluginApi = createPluginAPI({
           size: size.size,
           lineHeight: size.lineHeight,
           letterSpacing: size.letterSpacing,
+          textCase: size.textCase || "TITLE",
           styles: size.styles || selectedStyles, // Use size-specific styles or fallback to selected styles
         }));
 
@@ -296,12 +318,14 @@ export const pluginApi = createPluginAPI({
         const baseSize = 10; // Start from 10px
         const defaultLineHeight = config.lineHeight || 1.4;
         const defaultLetterSpacing = config.letterSpacing || 0;
+        const defaultTextCase = config.textCase || "TITLE";
 
         sizeScale = Array.from({ length: 9 }, (_, index) => ({
           name: (index + 1).toString(), // "1", "2", "3", ... "9"
           size: Math.round(baseSize * Math.pow(ratio, index)),
           lineHeight: defaultLineHeight,
           letterSpacing: defaultLetterSpacing,
+          textCase: defaultTextCase,
           // No styles property for auto mode - we'll use selectedStyles globally
         }));
 
@@ -361,6 +385,9 @@ export const pluginApi = createPluginAPI({
                 value: size.letterSpacing, // Already in percentage
                 unit: "PERCENT",
               } as LetterSpacing;
+
+              // Set text case
+              textStyle.textCase = size.textCase as any; // Use type assertion for compatibility
 
               // If using variable, bind variable to text style properties
               if (baseVariable && config.fontSource === "variable") {
@@ -493,6 +520,9 @@ export const pluginApi = createPluginAPI({
                 value: size.letterSpacing, // Already in percentage
                 unit: "PERCENT",
               } as LetterSpacing;
+
+              // Set text case
+              textStyle.textCase = size.textCase as any; // Use type assertion for compatibility
 
               // If using variable, bind variable to text style properties
               if (baseVariable && config.fontSource === "variable") {

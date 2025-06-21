@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { VariableSelector } from "./variable-selector";
+import { TextCaseToggle } from "./text-case-toggle";
 import { cn } from "@/lib/utils";
 import {
   formatLineHeightForDisplay,
@@ -25,6 +26,7 @@ import type {
   ScaleRatioOption,
   ValidationErrors,
   Variable,
+  TextCase,
 } from "@/lib/types/typography";
 
 interface TypographySettingsProps {
@@ -32,6 +34,7 @@ interface TypographySettingsProps {
   steps: number;
   lineHeight: number;
   letterSpacing: number;
+  textCase: TextCase;
   scaleRatio: number;
   selectedStyles: string[];
   availableStyles: string[];
@@ -41,6 +44,7 @@ interface TypographySettingsProps {
   onStepsChange: (value: number) => void;
   onLineHeightChange: (value: number) => void;
   onLetterSpacingChange: (value: number) => void;
+  onTextCaseChange: (value: TextCase) => void;
   onScaleRatioChange: (value: number) => void;
   onToggleStyle: (style: string) => void;
   onSetAllStyles: (styles: string[]) => void;
@@ -75,6 +79,7 @@ export function TypographySettings({
   steps,
   lineHeight,
   letterSpacing,
+  textCase,
   scaleRatio,
   selectedStyles,
   availableStyles,
@@ -84,6 +89,7 @@ export function TypographySettings({
   onStepsChange,
   onLineHeightChange,
   onLetterSpacingChange,
+  onTextCaseChange,
   onScaleRatioChange,
   onToggleStyle,
   onSetAllStyles,
@@ -239,7 +245,7 @@ export function TypographySettings({
   };
 
   return (
-    <div className="grid items-end grid-cols-2 gap-x-4 gap-y-6">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-6 items-end">
       {/* Row 1: Initial Size and Styles */}
       <FormField label="Initial Size">
         <div className="space-y-1">
@@ -251,7 +257,7 @@ export function TypographySettings({
               onChange={(e) => handleInitialSizeChange(e.target.value)}
               className={cn("pr-8", errors.initialSize && "border-red-500")}
             />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <div className="flex absolute inset-y-0 right-0 items-center pr-3 pointer-events-none">
               <span className="text-sm text-muted-foreground">px</span>
             </div>
           </div>
@@ -278,18 +284,18 @@ export function TypographySettings({
                 {availableStyles.length === 0
                   ? "No styles available"
                   : getStylesDisplayText()}
-                <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                <ChevronsUpDown className="ml-2 w-4 h-4 opacity-50 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
               <Command>
-                <div className="flex items-center justify-between p-2 border-b">
+                <div className="flex justify-between items-center p-2 border-b">
                   <span className="text-sm font-medium">Select Styles</span>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs cursor-default"
+                      className="px-2 h-6 text-xs cursor-default"
                       onClick={() => {
                         const allSelected =
                           selectedStyles.length === availableStyles.length;
@@ -353,7 +359,7 @@ export function TypographySettings({
               {/* Variable display overlay */}
               {lineHeightVariable && (
                 <div className="absolute inset-[2px] flex items-center px-2 pointer-events-none bg-background rounded-sm">
-                  <div className="flex items-center flex-1 min-w-0 gap-1">
+                  <div className="flex flex-1 gap-1 items-center min-w-0">
                     <span className="text-xs font-medium truncate text-foreground">
                       {lineHeightVariable.name}
                     </span>
@@ -364,7 +370,7 @@ export function TypographySettings({
                 </div>
               )}
               {!lineHeightVariable && (
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <div className="flex absolute inset-y-0 right-0 items-center pr-2 pointer-events-none">
                   <span className="text-xs text-muted-foreground">%</span>
                 </div>
               )}
@@ -374,7 +380,7 @@ export function TypographySettings({
               onVariableSelect={onLineHeightVariableSelect}
               onUnlink={() => onLineHeightVariableSelect(null)}
               allowedTypes={["FLOAT"]}
-              className="border-l-0 rounded-l-none"
+              className="rounded-l-none border-l-0"
               width={300}
             />
           </div>
@@ -404,7 +410,7 @@ export function TypographySettings({
               {/* Variable display overlay */}
               {letterSpacingVariable && (
                 <div className="absolute inset-[2px] flex items-center px-2 pointer-events-none bg-background rounded-sm">
-                  <div className="flex items-center flex-1 min-w-0 gap-1">
+                  <div className="flex flex-1 gap-1 items-center min-w-0">
                     <span className="text-xs font-medium truncate text-foreground">
                       {letterSpacingVariable.name}
                     </span>
@@ -415,7 +421,7 @@ export function TypographySettings({
                 </div>
               )}
               {!letterSpacingVariable && (
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <div className="flex absolute inset-y-0 right-0 items-center pr-2 pointer-events-none">
                   <span className="text-xs text-muted-foreground">%</span>
                 </div>
               )}
@@ -425,7 +431,7 @@ export function TypographySettings({
               onVariableSelect={onLetterSpacingVariableSelect}
               onUnlink={() => onLetterSpacingVariableSelect(null)}
               allowedTypes={["FLOAT"]}
-              className="border-l-0 rounded-l-none"
+              className="rounded-l-none border-l-0"
               width={300}
             />
           </div>
@@ -435,9 +441,35 @@ export function TypographySettings({
         </div>
       </FormField>
 
-      {/* Row 3: Scale Ratio and Steps */}
-      <FormField label="Scale Ratio">
+      {/* Row 3: Text Case and Steps */}
+      <FormField label="Text Case">
+        <div className="space-y-1 w-max">
+          <TextCaseToggle
+            value={textCase}
+            onValueChange={onTextCaseChange}
+            size="md"
+          />
+        </div>
+      </FormField>
+
+      <FormField label="Steps">
         <div className="space-y-1">
+          <Input
+            type="text"
+            placeholder="9"
+            value={steps.toString()}
+            onChange={(e) => handleStepsChange(e.target.value)}
+            className={cn("w-full", errors.steps && "border-red-500")}
+          />
+          {errors.steps && (
+            <p className="text-xs text-red-600">{errors.steps}</p>
+          )}
+        </div>
+      </FormField>
+
+      {/* Row 4: Scale Ratio */}
+      <FormField label="Scale Ratio">
+        <div className="col-span-2 space-y-1">
           <Popover open={isRatioOpen} onOpenChange={onRatioOpenChange}>
             <PopoverTrigger asChild>
               <Button
@@ -450,7 +482,7 @@ export function TypographySettings({
                 )}
               >
                 {getRatioDisplayText()}
-                <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                <ChevronsUpDown className="ml-2 w-4 h-4 opacity-50 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -485,20 +517,8 @@ export function TypographySettings({
         </div>
       </FormField>
 
-      <FormField label="Steps">
-        <div className="space-y-1">
-          <Input
-            type="text"
-            placeholder="9"
-            value={steps.toString()}
-            onChange={(e) => handleStepsChange(e.target.value)}
-            className={cn("w-full", errors.steps && "border-red-500")}
-          />
-          {errors.steps && (
-            <p className="text-xs text-red-600">{errors.steps}</p>
-          )}
-        </div>
-      </FormField>
+      {/* Placeholder for grid alignment */}
+      <div></div>
     </div>
   );
 }

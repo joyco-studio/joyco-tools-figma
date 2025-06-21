@@ -28,8 +28,10 @@ import {
 } from "lucide-react";
 import { VariableSelector } from "./variable-selector";
 import { AutoResizeInput } from "./auto-resize-input";
+import { TextCaseToggle } from "./text-case-toggle";
 import { cn } from "@/lib/utils";
 import { formatLineHeightForDisplay } from "@/lib/utils/typography";
+import type { TextCase } from "@/lib/types/typography";
 
 export interface SizeEntry {
   id: string;
@@ -42,6 +44,7 @@ export interface SizeEntry {
   sizeVariable?: Variable | null;
   lineHeightVariable?: Variable | null;
   letterSpacingVariable?: Variable | null;
+  textCase?: TextCase;
 }
 
 interface Variable {
@@ -130,6 +133,7 @@ export function ManualSizes({
       sizeVariable: null,
       lineHeightVariable: null,
       letterSpacingVariable: null,
+      textCase: prevSize ? prevSize.textCase : "TITLE",
     };
 
     const newSizes = [...sizes, newSize];
@@ -160,8 +164,9 @@ export function ManualSizes({
       | "styles"
       | "sizeVariable"
       | "lineHeightVariable"
-      | "letterSpacingVariable",
-    value: string | number | string[] | Variable | null
+      | "letterSpacingVariable"
+      | "textCase",
+    value: string | number | string[] | Variable | null | TextCase
   ) => {
     const newSizes = sizes.map((size) =>
       size.id === id ? { ...size, [field]: value } : size
@@ -701,6 +706,19 @@ export function ManualSizes({
                       width={300}
                     />
                   </div>
+                </FormField>
+              </div>
+
+              {/* Third Row: Text Case */}
+              <div className="grid grid-cols-1 gap-3">
+                <FormField label="Text Case" size="sm">
+                  <TextCaseToggle
+                    value={sizeEntry.textCase || "TITLE"}
+                    onValueChange={(value) =>
+                      updateManualSize(sizeEntry.id, "textCase", value)
+                    }
+                    size="sm"
+                  />
                 </FormField>
               </div>
             </div>

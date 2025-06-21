@@ -362,6 +362,7 @@ export function TextStyle({
                     steps={state.config.steps || 9}
                     lineHeight={state.config.lineHeight!}
                     letterSpacing={state.config.letterSpacing!}
+                    textCase={state.config.textCase || "TITLE"}
                     scaleRatio={state.config.scaleRatio!}
                     selectedStyles={state.config.styles}
                     availableStyles={availableStyles}
@@ -378,6 +379,9 @@ export function TextStyle({
                     }}
                     onLetterSpacingChange={(value) => {
                       setConfig({ letterSpacing: value });
+                    }}
+                    onTextCaseChange={(value) => {
+                      setConfig({ textCase: value });
                     }}
                     onScaleRatioChange={(value) => {
                       setConfig({ scaleRatio: value });

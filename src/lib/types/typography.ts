@@ -12,6 +12,14 @@ export interface Variable {
   resolvedValue?: string | number;
 }
 
+export type TextCase =
+  | "ORIGINAL"
+  | "UPPER"
+  | "LOWER"
+  | "TITLE"
+  | "SMALL_CAPS"
+  | "SMALL_CAPS_FORCED";
+
 export interface SizeEntry {
   id: string;
   name: string;
@@ -19,6 +27,7 @@ export interface SizeEntry {
   lineHeight: number;
   letterSpacing: number;
   styles: string[];
+  textCase?: TextCase;
   sizeVariable?: Variable | null;
   lineHeightVariable?: Variable | null;
   letterSpacingVariable?: Variable | null;
@@ -34,6 +43,7 @@ export interface TypographyConfig {
   steps?: number;
   lineHeight?: number;
   letterSpacing?: number;
+  textCase?: TextCase;
   lineHeightVariable?: Variable | null;
   letterSpacingVariable?: Variable | null;
   isManualScale: boolean;
