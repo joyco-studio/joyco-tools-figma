@@ -16,6 +16,7 @@ const textCaseOptions: {
   display: string;
   className: string;
 }[] = [
+  { value: "ORIGINAL", label: "Original", display: "–", className: "" },
   { value: "UPPER", label: "Uppercase", display: "AG", className: "uppercase" },
   { value: "LOWER", label: "Lowercase", display: "ag", className: "lowercase" },
   {

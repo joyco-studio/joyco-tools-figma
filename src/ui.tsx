@@ -4,6 +4,7 @@ import "./styles/globals.css";
 import { RectangleCreator } from "./tools/shapes/rectangle-creator";
 import { Typography } from "./tools/typography/styles-generator";
 import { ThreeDViewer } from "./tools/3d/glb-viewer";
+import { Variables } from "./tools/variables";
 import { TypeIcon } from "lucide-react";
 import { useFontsStore, useVariablesStore } from "./stores/fonts";
 import { AppSidebar } from "./components/layout/app-sidebar";
@@ -37,6 +38,10 @@ function App() {
     switch (activeTool) {
       case "typography":
         return <Typography />;
+      case "colors":
+        return <Variables activeTool="colors" />;
+      case "shadcn-colors":
+        return <Variables activeTool="shadcn-colors" />;
       case "3d-viewer":
         return <ThreeDViewer />;
       case "rectangle-creator":

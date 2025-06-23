@@ -7,6 +7,7 @@ import {
   Box,
   ChevronRight,
   Shapes,
+  Palette,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,24 @@ const toolCategories = [
     ],
   },
   {
+    id: "variables",
+    title: "Variables",
+    icon: Palette,
+    tools: [
+      {
+        id: "colors",
+        title: "Colors",
+        description: "Manage color variables and generate opacity variants",
+      },
+      {
+        id: "shadcn-colors",
+        title: "Shadcn Colors",
+        description:
+          "Generate shadcn-like color schemes with CSS custom properties",
+      },
+    ],
+  },
+  {
     id: "3d",
     title: "3D",
     icon: Box,
@@ -85,6 +104,7 @@ interface AppSidebarProps {
 export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
   const [openGroups, setOpenGroups] = React.useState<string[]>([
     "typography",
+    "variables",
     "3d",
     "shapes",
   ]);
@@ -124,7 +144,7 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
             Tools{" "}
             <p className="inline-flex items-center ml-3 text-xs text-accent">
               <span className="inline-block mr-2 rounded-full size-1.5 bg-accent" />
-              3 categories
+              4 categories
             </p>
           </SidebarGroupLabel>
           <SidebarGroupContent>

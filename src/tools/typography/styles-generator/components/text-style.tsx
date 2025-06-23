@@ -362,7 +362,7 @@ export function TextStyle({
                     steps={state.config.steps || 9}
                     lineHeight={state.config.lineHeight!}
                     letterSpacing={state.config.letterSpacing!}
-                    textCase={state.config.textCase || "TITLE"}
+                    textCase={state.config.textCase || "ORIGINAL"}
                     scaleRatio={state.config.scaleRatio!}
                     selectedStyles={state.config.styles}
                     availableStyles={availableStyles}

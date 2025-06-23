@@ -1,7 +1,20 @@
 export { Button } from "./button";
 export { Input } from "./input";
+export { InlineInput } from "./inline-input";
+export { ColorPicker } from "./color-picker";
 export { Label } from "./label";
 export { FormField } from "./form-field";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "./table";
+export { DraggableTableRow } from "./draggable-table-row";
 export { CardSwitch } from "./card-switch";
 export {
   Select,

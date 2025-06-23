@@ -133,6 +133,423 @@ export const pluginApi = createPluginAPI({
     figma.currentPage.selection = nodes;
     figma.viewport.scrollAndZoomIntoView(nodes);
   },
+  async createColorVariables(config: {
+    name: string;
+    collectionId?: string;
+    modes: Array<{ id: string; name: string }>;
+    entries: Array<{
+      id: string;
+      name: string;
+      values: Record<string, string>;
+    }>;
+    generateOpacityVariants: boolean;
+    opacitySteps: number[];
+  }) {
+    try {
+      console.log("🚀 Creating color variables:", config);
+
+      let collection: VariableCollection;
+
+      if (config.collectionId) {
+        // Edit existing collection
+        collection = await figma.variables.getVariableCollectionById(
+          config.collectionId
+        );
+        if (!collection) {
+          throw new Error("Collection not found");
+        }
+        console.log("📝 Using existing collection:", collection.name);
+      } else {
+        // Create new collection
+        collection = figma.variables.createVariableCollection(config.name);
+        console.log("🆕 Created new collection:", collection.name);
+      }
+
+      // Set up modes
+      const modeMap: Record<string, string> = {};
+
+      // Clear existing modes if creating new collection
+      if (!config.collectionId) {
+        // Remove default mode
+        const existingModes = collection.modes;
+        for (let i = 1; i < existingModes.length; i++) {
+          collection.removeMode(existingModes[i].modeId);
+        }
+
+        // Rename first mode
+        if (existingModes.length > 0) {
+          collection.renameMode(existingModes[0].modeId, config.modes[0].name);
+          modeMap[config.modes[0].id] = existingModes[0].modeId;
+        }
+
+        // Add additional modes
+        for (let i = 1; i < config.modes.length; i++) {
+          const modeId = collection.addMode(config.modes[i].name);
+          modeMap[config.modes[i].id] = modeId;
+        }
+      } else {
+        // For existing collections, map existing modes
+        config.modes.forEach((mode) => {
+          const existingMode = collection.modes.find(
+            (m) => m.name === mode.name
+          );
+          if (existingMode) {
+            modeMap[mode.id] = existingMode.modeId;
+          } else {
+            // Add new mode if it doesn't exist
+            const modeId = collection.addMode(mode.name);
+            modeMap[mode.id] = modeId;
+          }
+        });
+      }
+
+      console.log("🎨 Mode mapping:", modeMap);
+
+      const createdVariables: Array<{
+        id: string;
+        name: string;
+        description: string;
+      }> = [];
+
+      // Group entries by base color name for twin handling
+      const groupedEntries = new Map<
+        string,
+        { main?: any; foreground?: any }
+      >();
+
+      // Special case: check if both "background" and "foreground" exist
+      const backgroundEntry = config.entries.find(
+        (e) => e.name === "background"
+      );
+      const foregroundEntry = config.entries.find(
+        (e) => e.name === "foreground"
+      );
+
+      if (backgroundEntry && foregroundEntry) {
+        // Group background and foreground under "main"
+        groupedEntries.set("main", {
+          main: backgroundEntry,
+          foreground: foregroundEntry,
+        });
+      } else {
+        // Add them individually if only one exists
+        if (backgroundEntry) {
+          groupedEntries.set("background", { main: backgroundEntry });
+        }
+        if (foregroundEntry) {
+          groupedEntries.set("foreground", { main: foregroundEntry });
+        }
+      }
+
+      // Process other entries with normal twin logic
+      config.entries.forEach((entry) => {
+        // Skip background and foreground as they're handled above
+        if (entry.name === "background" || entry.name === "foreground") {
+          return;
+        }
+
+        const isMainColor = !entry.name.includes("-foreground");
+        const baseColorName = entry.name.replace("-foreground", "");
+
+        if (!groupedEntries.has(baseColorName)) {
+          groupedEntries.set(baseColorName, {});
+        }
+
+        if (isMainColor) {
+          groupedEntries.get(baseColorName)!.main = entry;
+        } else {
+          groupedEntries.get(baseColorName)!.foreground = entry;
+        }
+      });
+
+      // Helper function to parse colors
+      const parseColor = (colorValue: string) => {
+        console.log(`🎨 Parsing color: ${colorValue}`);
+        let figmaColor;
+
+        if (colorValue.startsWith("#")) {
+          // Convert hex to RGB
+          const hex = colorValue.replace("#", "");
+          const r = parseInt(hex.substring(0, 2), 16) / 255;
+          const g = parseInt(hex.substring(2, 4), 16) / 255;
+          const b = parseInt(hex.substring(4, 6), 16) / 255;
+          figmaColor = { r, g, b };
+          console.log(`📝 Hex converted to RGB:`, figmaColor);
+        } else if (colorValue.startsWith("rgb")) {
+          // Parse RGB values
+          const matches = colorValue.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+          if (matches) {
+            figmaColor = {
+              r: parseInt(matches[1]) / 255,
+              g: parseInt(matches[2]) / 255,
+              b: parseInt(matches[3]) / 255,
+            };
+            console.log(`📝 RGB parsed:`, figmaColor);
+          }
+        } else if (colorValue.startsWith("oklch")) {
+          // Parse OKLCH values - oklch(L C H / A)
+          const matches = colorValue.match(
+            /oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.%]+))?\)/
+          );
+          if (matches) {
+            const l = parseFloat(matches[1]); // Lightness 0-1
+            const c = parseFloat(matches[2]); // Chroma 0-0.4+
+            const h = parseFloat(matches[3]); // Hue 0-360
+
+            // Better OKLCH to RGB conversion
+            const hRad = (h * Math.PI) / 180;
+            const a = c * Math.cos(hRad);
+            const b = c * Math.sin(hRad);
+
+            // Convert OKLAB to Linear RGB (simplified)
+            const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+            const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+            const s_ = l - 0.0894841775 * a - 1.291485548 * b;
+
+            const l_3 = l_ * l_ * l_;
+            const m_3 = m_ * m_ * m_;
+            const s_3 = s_ * s_ * s_;
+
+            let r =
+              +4.0767416621 * l_3 - 3.3077115913 * m_3 + 0.2309699292 * s_3;
+            let g =
+              -1.2684380046 * l_3 + 2.6097574011 * m_3 - 0.3413193965 * s_3;
+            let blue =
+              -0.0041960863 * l_3 - 0.7034186147 * m_3 + 1.707614701 * s_3;
+
+            // Clamp to 0-1 range
+            r = Math.max(0, Math.min(1, r));
+            g = Math.max(0, Math.min(1, g));
+            blue = Math.max(0, Math.min(1, blue));
+
+            figmaColor = { r, g, b: blue };
+            console.log(
+              `📝 OKLCH(${l}, ${c}, ${h}) converted to RGB:`,
+              figmaColor
+            );
+          } else {
+            console.warn(`Invalid OKLCH format: ${colorValue}`);
+            figmaColor = { r: 0.5, g: 0.5, b: 0.5 };
+          }
+        } else {
+          console.warn(`Unknown color format: ${colorValue}`);
+          figmaColor = { r: 0, g: 0, b: 0 };
+        }
+
+        return figmaColor;
+      };
+
+      // Create variables for each group
+      for (const [baseColorName, { main, foreground }] of groupedEntries) {
+        // Replace dashes with spaces for group names
+        const groupName = baseColorName.replace(/-/g, " ");
+
+        // Create main color variable at group root
+        if (main) {
+          // Special naming for "main" group (background/foreground)
+          const mainVariableName =
+            baseColorName === "main"
+              ? `${groupName}/background`
+              : `${groupName}/${baseColorName}`;
+
+          const mainVariable = figma.variables.createVariable(
+            mainVariableName,
+            collection.id,
+            "COLOR"
+          );
+
+          // Set values for each mode
+          Object.keys(main.values).forEach((configModeId) => {
+            const figmaModeId = modeMap[configModeId];
+            if (figmaModeId) {
+              try {
+                const figmaColor = parseColor(main.values[configModeId]);
+                mainVariable.setValueForMode(figmaModeId, figmaColor);
+              } catch (colorError) {
+                console.warn(
+                  `Failed to set color for ${main.name} in mode ${configModeId}:`,
+                  colorError
+                );
+              }
+            }
+          });
+
+          mainVariable.description = `Color variable: ${main.name}`;
+          createdVariables.push({
+            id: mainVariable.id,
+            name: mainVariable.name,
+            description: mainVariable.description,
+          });
+
+          console.log(`✅ Created main variable: ${mainVariable.name}`);
+        }
+
+        // Create foreground color variable at group root (if it exists)
+        if (foreground) {
+          // Special naming for "main" group (background/foreground)
+          const foregroundVariableName =
+            baseColorName === "main"
+              ? `${groupName}/foreground`
+              : `${groupName}/${baseColorName} foreground`;
+
+          const foregroundVariable = figma.variables.createVariable(
+            foregroundVariableName,
+            collection.id,
+            "COLOR"
+          );
+
+          // Set values for each mode
+          Object.keys(foreground.values).forEach((configModeId) => {
+            const figmaModeId = modeMap[configModeId];
+            if (figmaModeId) {
+              try {
+                const figmaColor = parseColor(foreground.values[configModeId]);
+                foregroundVariable.setValueForMode(figmaModeId, figmaColor);
+              } catch (colorError) {
+                console.warn(
+                  `Failed to set foreground color for ${foreground.name} in mode ${configModeId}:`,
+                  colorError
+                );
+              }
+            }
+          });
+
+          foregroundVariable.description = `Color variable: ${foreground.name}`;
+          createdVariables.push({
+            id: foregroundVariable.id,
+            name: foregroundVariable.name,
+            description: foregroundVariable.description,
+          });
+
+          console.log(
+            `✅ Created foreground variable: ${foregroundVariable.name}`
+          );
+        }
+
+        // Create opacity variants if enabled
+        if (config.generateOpacityVariants) {
+          // Create main color opacity variants in subgroup
+          if (main) {
+            for (const opacity of config.opacitySteps) {
+              // Special naming for "main" group opacity variants
+              const opacitySubgroupName =
+                baseColorName === "main" ? "background" : baseColorName;
+              const opacityVariableName = `${groupName}/${opacitySubgroupName} opacity/${opacitySubgroupName}-${opacity
+                .toString()
+                .replace(".", ",")}`;
+
+              const opacityVariable = figma.variables.createVariable(
+                opacityVariableName,
+                collection.id,
+                "COLOR"
+              );
+
+              // Set opacity values for each mode
+              Object.keys(main.values).forEach((configModeId) => {
+                const figmaModeId = modeMap[configModeId];
+                if (figmaModeId) {
+                  try {
+                    const baseColor = parseColor(main.values[configModeId]);
+                    const opacityColor = { ...baseColor, a: opacity / 100 };
+                    opacityVariable.setValueForMode(figmaModeId, opacityColor);
+                  } catch (colorError) {
+                    console.warn(
+                      `Failed to set opacity color for ${main.name}-${opacity}:`,
+                      colorError
+                    );
+                  }
+                }
+              });
+
+              opacityVariable.description = `${main.name} color at ${opacity}% opacity`;
+              createdVariables.push({
+                id: opacityVariable.id,
+                name: opacityVariable.name,
+                description: opacityVariable.description,
+              });
+
+              console.log(
+                `✅ Created opacity variable: ${opacityVariable.name}`
+              );
+            }
+          }
+
+          // Create foreground color opacity variants in subgroup (if it exists)
+          if (foreground) {
+            for (const opacity of config.opacitySteps) {
+              // Special naming for "main" group foreground opacity variants
+              const foregroundSubgroupName =
+                baseColorName === "main"
+                  ? "foreground"
+                  : `${baseColorName} foreground`;
+              const opacityVariableName = `${groupName}/${foregroundSubgroupName} opacity/${foregroundSubgroupName}-${opacity
+                .toString()
+                .replace(".", ",")}`;
+
+              const opacityVariable = figma.variables.createVariable(
+                opacityVariableName,
+                collection.id,
+                "COLOR"
+              );
+
+              // Set opacity values for each mode
+              Object.keys(foreground.values).forEach((configModeId) => {
+                const figmaModeId = modeMap[configModeId];
+                if (figmaModeId) {
+                  try {
+                    const baseColor = parseColor(
+                      foreground.values[configModeId]
+                    );
+                    const opacityColor = { ...baseColor, a: opacity / 100 };
+                    opacityVariable.setValueForMode(figmaModeId, opacityColor);
+                  } catch (colorError) {
+                    console.warn(
+                      `Failed to set foreground opacity color for ${foreground.name}-${opacity}:`,
+                      colorError
+                    );
+                  }
+                }
+              });
+
+              opacityVariable.description = `${foreground.name} color at ${opacity}% opacity`;
+              createdVariables.push({
+                id: opacityVariable.id,
+                name: opacityVariable.name,
+                description: opacityVariable.description,
+              });
+
+              console.log(
+                `✅ Created foreground opacity variable: ${opacityVariable.name}`
+              );
+            }
+          }
+        }
+      }
+
+      console.log(
+        `🎉 Successfully created ${createdVariables.length} color variables`
+      );
+
+      return {
+        success: true,
+        message: `Created ${createdVariables.length} color variables in collection "${collection.name}"`,
+        variablesCreated: createdVariables.length,
+        variables: createdVariables,
+        collectionId: collection.id,
+        collectionName: collection.name,
+      };
+    } catch (error) {
+      console.error("❌ Error creating color variables:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to create color variables",
+        error: error,
+      };
+    }
+  },
   async createTypographySystem(config: {
     name: string;
     fontSource: "type" | "variable";
@@ -307,7 +724,7 @@ export const pluginApi = createPluginAPI({
           size: size.size,
           lineHeight: size.lineHeight,
           letterSpacing: size.letterSpacing,
-          textCase: size.textCase || "TITLE",
+          textCase: size.textCase || "ORIGINAL",
           styles: size.styles || selectedStyles, // Use size-specific styles or fallback to selected styles
         }));
 
@@ -318,7 +735,7 @@ export const pluginApi = createPluginAPI({
         const baseSize = 10; // Start from 10px
         const defaultLineHeight = config.lineHeight || 1.4;
         const defaultLetterSpacing = config.letterSpacing || 0;
-        const defaultTextCase = config.textCase || "TITLE";
+        const defaultTextCase = config.textCase || "ORIGINAL";
 
         sizeScale = Array.from({ length: 9 }, (_, index) => ({
           name: (index + 1).toString(), // "1", "2", "3", ... "9"

@@ -713,7 +713,7 @@ export function ManualSizes({
               <div className="grid grid-cols-1 gap-3">
                 <FormField label="Text Case" size="sm">
                   <TextCaseToggle
-                    value={sizeEntry.textCase || "TITLE"}
+                    value={sizeEntry.textCase || "ORIGINAL"}
                     onValueChange={(value) =>
                       updateManualSize(sizeEntry.id, "textCase", value)
                     }
