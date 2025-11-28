@@ -87,7 +87,7 @@ function typographyReducer(
         scalingMode: action.payload,
         config: {
           ...state.config,
-          isManualScale: action.payload === "manual",
+          isManualScale: action.payload === "manual" || action.payload === "tailwind",
         },
       };
 

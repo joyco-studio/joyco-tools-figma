@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Zap,
   Sliders,
+  Palette,
 } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 
@@ -25,6 +26,7 @@ import { AutoResizeInput } from "./auto-resize-input";
 import { FontSelector } from "./font-selector";
 import { TypographySettings } from "./typography-settings";
 import { ManualSizesSection } from "./manual-sizes-section";
+import { TailwindPresetSection } from "./tailwind-preset-section";
 
 // Types and hooks
 import type { TextStyleProps } from "@/lib/types/typography";
@@ -207,7 +209,7 @@ export function TextStyle({
   }, [setVariable, setConfig]);
 
   const handleScalingModeChange = React.useCallback(
-    (mode: "auto" | "manual") => {
+    (mode: "auto" | "manual" | "tailwind") => {
       setScalingMode(mode);
 
       // Auto-select all styles when switching to auto mode if font is already selected
@@ -215,8 +217,8 @@ export function TextStyle({
         setAllStyles(availableStyles);
       }
 
-      // When switching to manual mode, ensure styles are selected and manual sizes have styles
-      if (mode === "manual" && availableStyles.length > 0) {
+      // When switching to manual or tailwind mode, ensure styles are selected and manual sizes have styles
+      if ((mode === "manual" || mode === "tailwind") && availableStyles.length > 0) {
         // Auto-select styles if no styles are selected
         if (state.config.styles.length === 0) {
           setAllStyles(availableStyles);
@@ -236,6 +238,11 @@ export function TextStyle({
               : size
           );
           setConfig({ manualSizes: updatedSizes });
+        }
+
+        // For tailwind mode, clear existing manual sizes to trigger preset loading
+        if (mode === "tailwind") {
+          setConfig({ manualSizes: [] });
         }
       }
     },
@@ -352,6 +359,14 @@ export function TextStyle({
                 >
                   Manual
                 </FolderTabsTrigger>
+                <FolderTabsTrigger
+                  className="uppercase"
+                  value="tailwind"
+                  icon={<Palette className="size-3" />}
+                  disabled={!hasFontSelected}
+                >
+                  Tailwind
+                </FolderTabsTrigger>
               </FolderTabsList>
 
               <FolderTabsContent value="auto">
@@ -417,6 +432,15 @@ export function TextStyle({
                   }
                   onRemoveSize={removeManualSize}
                   onUpdateSize={updateManualSize}
+                  error={currentErrors.manualSizes}
+                />
+              </FolderTabsContent>
+
+              <FolderTabsContent value="tailwind">
+                <TailwindPresetSection
+                  sizes={state.config.manualSizes || []}
+                  availableStyles={availableStyles}
+                  onSizesChange={(sizes) => setConfig({ manualSizes: sizes })}
                   error={currentErrors.manualSizes}
                 />
               </FolderTabsContent>

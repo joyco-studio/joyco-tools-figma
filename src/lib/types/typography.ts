@@ -74,5 +74,5 @@ export interface ScaleRatioOption {
   label: string;
 }
 
-export type ScalingMode = "auto" | "manual";
+export type ScalingMode = "auto" | "manual" | "tailwind";
 export type FontSource = "type" | "variable";
