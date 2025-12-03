@@ -54,3 +54,4 @@ export {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./dropdown-menu";
+export { ToolPanel, ToolFooter, ToolFooterError } from "./tool-panel";

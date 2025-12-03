@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { ToolPanel, ToolFooter, ToolFooterError } from "@/components/ui/tool-panel";
 import { PlusIcon } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 import { TextStyle } from "./components/text-style";
@@ -158,7 +159,7 @@ export function Typography() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <ToolPanel>
       {/* Main content area */}
       <div className="flex-1 p-4 overflow-auto">
         {/* List of text styles */}
@@ -191,13 +192,8 @@ export function Typography() {
         </div>
       </div>
 
-      {/* Sticky bottom action area */}
-      <div className="sticky bottom-0 flex flex-col gap-3 p-4 border-t border-border bg-background">
-        {submitError && (
-          <div className="p-3 text-sm text-red-600 border border-red-200 rounded-md bg-red-50">
-            {submitError}
-          </div>
-        )}
+      <ToolFooter>
+        {submitError && <ToolFooterError>{submitError}</ToolFooterError>}
 
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
@@ -212,7 +208,7 @@ export function Typography() {
             {isGenerating ? "Generating..." : "Apply"}
           </Button>
         </div>
-      </div>
-    </div>
+      </ToolFooter>
+    </ToolPanel>
   );
 }

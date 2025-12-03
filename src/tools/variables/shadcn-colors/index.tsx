@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { ToolPanel, ToolFooter, ToolFooterError } from "@/components/ui/tool-panel";
 import { InlineInput } from "@/components/ui/inline-input";
 import { ColorPicker } from "@/components/ui/color-picker";
 import {
@@ -463,7 +464,7 @@ export function ShadcnColors() {
     colorEntries.length > 0 && colorModes.length > 0 && configName.trim();
 
   return (
-    <div className="flex flex-col h-full">
+    <ToolPanel>
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 border-b bg-background border-border">
         <div className="p-4 space-y-4">
@@ -716,13 +717,8 @@ export function ShadcnColors() {
         </ScrollArea>
       </div>
 
-      {/* Sticky Bottom Action Area */}
-      <div className="flex sticky bottom-0 flex-col gap-3 p-4 border-t border-border bg-background">
-        {submitError && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-200">
-            {submitError}
-          </div>
-        )}
+      <ToolFooter>
+        {submitError && <ToolFooterError>{submitError}</ToolFooterError>}
 
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
@@ -737,7 +733,7 @@ export function ShadcnColors() {
             {isGenerating ? "Generating..." : "Apply"}
           </Button>
         </div>
-      </div>
-    </div>
+      </ToolFooter>
+    </ToolPanel>
   );
 }

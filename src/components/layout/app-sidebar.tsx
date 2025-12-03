@@ -70,30 +70,30 @@ const toolCategories = [
       },
     ],
   },
-  {
-    id: "3d",
-    title: "3D",
-    icon: Box,
-    tools: [
-      {
-        id: "3d-viewer",
-        title: "GLB Viewer",
-        description: "View and render GLB/GLTF models",
-      },
-    ],
-  },
-  {
-    id: "shapes",
-    title: "Shapes",
-    icon: Shapes,
-    tools: [
-      {
-        id: "rectangle-creator",
-        title: "Rectangle Creator",
-        description: "Create rectangles in bulk",
-      },
-    ],
-  },
+  // {
+  //   id: "3d",
+  //   title: "3D",
+  //   icon: Box,
+  //   tools: [
+  //     {
+  //       id: "3d-viewer",
+  //       title: "GLB Viewer",
+  //       description: "View and render GLB/GLTF models",
+  //     },
+  //   ],
+  // },
+  // {
+  //   id: "shapes",
+  //   title: "Shapes",
+  //   icon: Shapes,
+  //   tools: [
+  //     {
+  //       id: "rectangle-creator",
+  //       title: "Rectangle Creator",
+  //       description: "Create rectangles in bulk",
+  //     },
+  //   ],
+  // },
 ];
 
 interface AppSidebarProps {
@@ -188,42 +188,6 @@ export function AppSidebar({ activeItem, onItemClick }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <User2 className="size-4" />
-                  <div className="grid flex-1 text-sm leading-tight text-left">
-                    <span className="font-medium truncate text-sidebar-foreground">
-                      User
-                    </span>
-                    <span className="text-xs truncate text-sidebar-foreground/70">
-                      user@example.com
-                    </span>
-                  </div>
-                  <ChevronUp className="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuItem>Account</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
