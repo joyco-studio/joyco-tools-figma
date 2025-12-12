@@ -449,7 +449,7 @@ export function ManualSizes({
                           updateManualSize(
                             sizeEntry.id,
                             "size",
-                            parseInt(e.target.value) || 0
+                            e.target.value || 0
                           )
                         }
                         disabled={!!sizeEntry.sizeVariable}

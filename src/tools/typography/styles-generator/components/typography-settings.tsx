@@ -143,7 +143,7 @@ export function TypographySettings({
   };
 
   const handleInitialSizeChange = (value: string) => {
-    const num = parseInt(value);
+    const num = parseFloat(value);
     if (value.trim() && !isNaN(num) && num > 0) {
       onInitialSizeChange(num);
     }

@@ -789,7 +789,7 @@ export const pluginApi = createPluginAPI({
                 style: style,
               } as FontName;
 
-              textStyle.fontSize = size.size;
+              textStyle.fontSize = parseFloat(size.size.toString());
 
               // Set line height using Figma's LineHeight type
               textStyle.lineHeight = {
