@@ -8,15 +8,29 @@ export interface InlineInputProps
 }
 
 const InlineInput = React.forwardRef<HTMLInputElement, InlineInputProps>(
-  ({ className, onSave, onCancel, onBlur, onKeyDown, ...props }, ref) => {
+  (
+    {
+      className,
+      onSave,
+      onCancel,
+      onBlur,
+      onKeyDown,
+      value,
+      onChange,
+      placeholder,
+      ...props
+    },
+    ref
+  ) => {
     const [isEditing, setIsEditing] = React.useState(false);
-    const [localValue, setLocalValue] = React.useState(
-      props.value?.toString() || ""
-    );
+    const [localValue, setLocalValue] = React.useState(value?.toString() || "");
 
+    // Sync local value with prop value when not editing
     React.useEffect(() => {
-      setLocalValue(props.value?.toString() || "");
-    }, [props.value]);
+      if (!isEditing) {
+        setLocalValue(value?.toString() || "");
+      }
+    }, [value, isEditing]);
 
     const handleSave = () => {
       onSave?.(localValue);
@@ -24,9 +38,14 @@ const InlineInput = React.forwardRef<HTMLInputElement, InlineInputProps>(
     };
 
     const handleCancel = () => {
-      setLocalValue(props.value?.toString() || "");
+      setLocalValue(value?.toString() || "");
       onCancel?.();
       setIsEditing(false);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLocalValue(e.target.value);
+      onChange?.(e);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -54,7 +73,7 @@ const InlineInput = React.forwardRef<HTMLInputElement, InlineInputProps>(
           )}
           onClick={() => setIsEditing(true)}
         >
-          {localValue || props.placeholder || "Click to edit"}
+          {localValue || placeholder || "Click to edit"}
         </div>
       );
     }
@@ -63,6 +82,8 @@ const InlineInput = React.forwardRef<HTMLInputElement, InlineInputProps>(
       <input
         ref={ref}
         type="text"
+        placeholder={placeholder}
+        {...props}
         className={cn(
           "flex h-8 w-full rounded-md bg-transparent px-2 py-1 text-sm shadow-sm transition-colors",
           "border-none outline-none ring-2 ring-ring ring-offset-2 ring-offset-background",
@@ -72,11 +93,10 @@ const InlineInput = React.forwardRef<HTMLInputElement, InlineInputProps>(
           className
         )}
         value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
+        onChange={handleChange}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         autoFocus
-        {...props}
       />
     );
   }
