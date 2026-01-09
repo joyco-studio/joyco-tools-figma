@@ -64,6 +64,7 @@ interface ManualSizesProps {
   className?: string;
   editingId?: string | null;
   onEditingIdChange?: (id: string | null) => void;
+  hideStylesColumn?: boolean; // Hide individual styles selector when using global styles
 }
 
 // Helper function to get human-readable type
@@ -90,6 +91,7 @@ export function ManualSizes({
   className,
   editingId,
   onEditingIdChange,
+  hideStylesColumn = false,
 }: ManualSizesProps) {
   // Local state for input values to allow typing intermediate states
   const [inputValues, setInputValues] = React.useState<{
@@ -431,8 +433,8 @@ export function ManualSizes({
 
             {/* Content */}
             <div className="p-3 space-y-3 border-t border-border">
-              {/* First Row: Size and Styles */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* First Row: Size and optionally Styles */}
+              <div className={cn("grid gap-3", hideStylesColumn ? "grid-cols-1" : "grid-cols-2")}>
                 {/* Size with Variable Selector */}
                 <FormField label="Size" size="sm">
                   <div className="flex items-stretch">
@@ -494,81 +496,83 @@ export function ManualSizes({
                   </div>
                 </FormField>
 
-                {/* Styles Multi-Select */}
-                <FormField label="Styles" size="sm">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        disabled={availableStyles.length === 0}
-                        className={cn(
-                          "justify-between w-full cursor-default h-8",
-                          availableStyles.length === 0 && "opacity-50"
-                        )}
-                      >
-                        {availableStyles.length === 0
-                          ? "No styles available"
-                          : getStylesDisplayText(sizeEntry.styles)}
-                        <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <div className="flex items-center justify-between p-2 border-b">
-                          <span className="text-sm font-medium">
-                            Select Styles
-                          </span>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs cursor-default"
-                              onClick={() => {
-                                const allSelected =
-                                  sizeEntry.styles.length ===
-                                  availableStyles.length;
-                                updateManualSize(
-                                  sizeEntry.id,
-                                  "styles",
-                                  allSelected ? [] : [...availableStyles]
-                                );
-                              }}
-                            >
-                              {sizeEntry.styles.length ===
-                              availableStyles.length
-                                ? "Clear"
-                                : "All"}
-                            </Button>
-                          </div>
-                        </div>
-                        <CommandList className="max-h-[200px] overflow-auto">
-                          <CommandGroup>
-                            {availableStyles.map((style) => (
-                              <CommandItem
-                                key={style}
-                                onSelect={() =>
-                                  handleStyleToggle(sizeEntry.id, style)
-                                }
-                                className="cursor-default"
+                {/* Styles Multi-Select - Hidden when using global styles */}
+                {!hideStylesColumn && (
+                  <FormField label="Styles" size="sm">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={availableStyles.length === 0}
+                          className={cn(
+                            "justify-between w-full cursor-default h-8",
+                            availableStyles.length === 0 && "opacity-50"
+                          )}
+                        >
+                          {availableStyles.length === 0
+                            ? "No styles available"
+                            : getStylesDisplayText(sizeEntry.styles)}
+                          <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <div className="flex items-center justify-between p-2 border-b">
+                            <span className="text-sm font-medium">
+                              Select Styles
+                            </span>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs cursor-default"
+                                onClick={() => {
+                                  const allSelected =
+                                    sizeEntry.styles.length ===
+                                    availableStyles.length;
+                                  updateManualSize(
+                                    sizeEntry.id,
+                                    "styles",
+                                    allSelected ? [] : [...availableStyles]
+                                  );
+                                }}
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    sizeEntry.styles.includes(style)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                <span>{style}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </FormField>
+                                {sizeEntry.styles.length ===
+                                availableStyles.length
+                                  ? "Clear"
+                                  : "All"}
+                              </Button>
+                            </div>
+                          </div>
+                          <CommandList className="max-h-[200px] overflow-auto">
+                            <CommandGroup>
+                              {availableStyles.map((style) => (
+                                <CommandItem
+                                  key={style}
+                                  onSelect={() =>
+                                    handleStyleToggle(sizeEntry.id, style)
+                                  }
+                                  className="cursor-default"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      sizeEntry.styles.includes(style)
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <span>{style}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </FormField>
+                )}
               </div>
 
               {/* Second Row: Line Height and Letter Spacing */}

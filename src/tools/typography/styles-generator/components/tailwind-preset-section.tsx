@@ -1,5 +1,19 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { FormField } from "@/components/ui/form-field";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ManualSizes, type SizeEntry } from "./manual-sizes";
 
 interface TailwindPresetSectionProps {
@@ -112,19 +126,30 @@ export function TailwindPresetSection({
 }: TailwindPresetSectionProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [globalStyles, setGlobalStyles] = React.useState<string[]>([]);
+  const [isStylesOpen, setIsStylesOpen] = React.useState(false);
+
+  // Initialize global styles from first size entry if available
+  React.useEffect(() => {
+    if (sizes.length > 0 && globalStyles.length === 0) {
+      setGlobalStyles(sizes[0].styles || availableStyles.slice(0, 1));
+    }
+  }, [sizes, availableStyles, globalStyles.length]);
 
   // Initialize with Tailwind presets if sizes are empty
   React.useEffect(() => {
     if (sizes.length === 0 && availableStyles.length > 0 && !isInitialized) {
+      const defaultStyles = availableStyles.slice(0, 1);
       const tailwindSizes: SizeEntry[] = TAILWIND_PRESETS.map((preset, index) => ({
         ...preset,
         id: (index + 1).toString(),
-        styles: availableStyles.slice(0, 1), // Default to first available style
+        styles: defaultStyles,
         sizeVariable: null,
         lineHeightVariable: null,
         letterSpacingVariable: null,
       }));
       
+      setGlobalStyles(defaultStyles);
       onSizesChange(tailwindSizes);
       setIsInitialized(true);
     }
@@ -133,16 +158,53 @@ export function TailwindPresetSection({
   const handleLoadTailwindPresets = () => {
     if (availableStyles.length === 0) return;
     
+    const defaultStyles = globalStyles.length > 0 ? globalStyles : availableStyles.slice(0, 1);
     const tailwindSizes: SizeEntry[] = TAILWIND_PRESETS.map((preset, index) => ({
       ...preset,
       id: (index + 1).toString(),
-      styles: availableStyles.slice(0, 1), // Default to first available style
+      styles: defaultStyles,
       sizeVariable: null,
       lineHeightVariable: null,
       letterSpacingVariable: null,
     }));
     
     onSizesChange(tailwindSizes);
+  };
+
+  const handleGlobalStyleToggle = (style: string) => {
+    const newGlobalStyles = globalStyles.includes(style)
+      ? globalStyles.filter((s) => s !== style)
+      : [...globalStyles, style];
+    
+    setGlobalStyles(newGlobalStyles);
+    
+    // Apply to all sizes
+    const updatedSizes = sizes.map((size) => ({
+      ...size,
+      styles: newGlobalStyles,
+    }));
+    onSizesChange(updatedSizes);
+  };
+
+  const handleSetAllGlobalStyles = (styles: string[]) => {
+    setGlobalStyles(styles);
+    
+    // Apply to all sizes
+    const updatedSizes = sizes.map((size) => ({
+      ...size,
+      styles: styles,
+    }));
+    onSizesChange(updatedSizes);
+  };
+
+  const getGlobalStylesDisplayText = () => {
+    if (globalStyles.length === 0) return "Select styles...";
+    if (globalStyles.length === availableStyles.length && availableStyles.length > 0)
+      return "All styles";
+    if (globalStyles.length === 1) {
+      return globalStyles[0];
+    }
+    return `${globalStyles.length} styles selected`;
   };
 
   return (
@@ -174,7 +236,7 @@ export function TailwindPresetSection({
       {/* Manual Sizes Component */}
       {sizes.length > 0 && (
         <>
-          <div className="px-4 py-2 border-b border-border">
+          <div className="px-4 py-3 space-y-4 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <h3 className="text-sm font-medium">Tailwind CSS Font Sizes</h3>
@@ -192,6 +254,74 @@ export function TailwindPresetSection({
                 Reset to Presets
               </Button>
             </div>
+            
+            {/* Global Styles Selector */}
+            <FormField label="Font Styles (applies to all sizes)" size="sm">
+              <Popover open={isStylesOpen} onOpenChange={setIsStylesOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={availableStyles.length === 0}
+                    className={cn(
+                      "justify-between w-full cursor-default h-8",
+                      availableStyles.length === 0 && "opacity-50"
+                    )}
+                  >
+                    {availableStyles.length === 0
+                      ? "No styles available"
+                      : getGlobalStylesDisplayText()}
+                    <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <div className="flex items-center justify-between p-2 border-b">
+                      <span className="text-sm font-medium">Select Styles</span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs cursor-default"
+                          onClick={() => {
+                            const allSelected =
+                              globalStyles.length === availableStyles.length;
+                            handleSetAllGlobalStyles(
+                              allSelected ? [] : [...availableStyles]
+                            );
+                          }}
+                        >
+                          {globalStyles.length === availableStyles.length
+                            ? "Clear"
+                            : "All"}
+                        </Button>
+                      </div>
+                    </div>
+                    <CommandList className="max-h-[200px] overflow-auto">
+                      <CommandGroup>
+                        {availableStyles.map((style) => (
+                          <CommandItem
+                            key={style}
+                            onSelect={() => handleGlobalStyleToggle(style)}
+                            className="cursor-default"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                globalStyles.includes(style)
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <span>{style}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </FormField>
           </div>
           
           <ManualSizes
@@ -201,6 +331,7 @@ export function TailwindPresetSection({
             defaultRatio={1.2}
             editingId={editingId}
             onEditingIdChange={setEditingId}
+            hideStylesColumn
           />
         </>
       )}
